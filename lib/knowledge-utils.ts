@@ -103,3 +103,38 @@ export async function fetchKnowledgeEntries(userId: string) {
     };
   }
 }
+
+// Helper function to get a readable source display
+export function getSourceDisplay(entry: any): string {
+  if (!entry) return 'Unknown';
+  
+  switch (entry.type) {
+    case 'url':
+      try {
+        const url = new URL(entry.source);
+        return url.hostname;
+      } catch (e) {
+        return entry.source;
+      }
+    case 'email':
+      return entry.source;
+    case 'pdf':
+      return `PDF: ${entry.source}`;
+    default:
+      return entry.source;
+  }
+}
+
+// Helper function to get an icon name based on source type
+export function getSourceIconName(type: string): string {
+  switch (type) {
+    case 'url':
+      return 'Globe';
+    case 'email':
+      return 'Mail';
+    case 'pdf':
+      return 'FileText';
+    default:
+      return 'File';
+  }
+}

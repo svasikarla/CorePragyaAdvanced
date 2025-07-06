@@ -20,7 +20,7 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'https://' + url;
       }
-      
+
       new URL(url); // This will throw if the URL is invalid
     } catch (urlError) {
       console.error('Invalid URL format:', urlError);
@@ -43,9 +43,9 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        return { 
-          success: false, 
-          error: `Failed to fetch URL content: ${response.status} ${response.statusText}` 
+        return {
+          success: false,
+          error: `Failed to fetch URL content: ${response.status} ${response.statusText}`
         };
       }
 
@@ -69,13 +69,13 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
         // Remove script and style tags and their content
         let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
         text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
-    
+
         // Remove all HTML tags
         text = text.replace(/<[^>]*>/g, ' ');
-    
+
         // Replace multiple spaces, newlines, and tabs with a single space
         text = text.replace(/\s+/g, ' ');
-    
+
         // Decode HTML entities
         text = text.replace(/&nbsp;/g, ' ')
                    .replace(/&amp;/g, '&')
@@ -83,7 +83,7 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
                    .replace(/&gt;/g, '>')
                    .replace(/&quot;/g, '"')
                    .replace(/&#39;/g, "'");
-    
+
         return text.trim();
       } catch (error) {
         console.error('Error extracting text from HTML:', error);
@@ -92,21 +92,19 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
     }
 
     const extractedText = extractTextFromHtml(htmlContent);
-    
+
     // Extract title from HTML
     const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
     const title = titleMatch ? titleMatch[1] : emailSubject || 'Untitled Page';
 
-    // Process the content with OpenAI
-    const openai = new (await import('openai')).default({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    // Import Anthropic client
+    const { anthropic } = await import('@/lib/ai-clients');
 
     const prompt = `
       Article Title: ${title}
-      
+
       Article Content: ${extractedText.substring(0, 15000)}
-      
+
       Please analyze this content and provide:
       1. A concise summary (max 150 words)
       2. 3-5 key points from the article
@@ -121,7 +119,7 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
          - Health
          - Personal Development
          - Other (please specify)
-      
+
       Format your response as JSON with the following structure:
       {
         "summary_text": "concise summary here",
@@ -134,31 +132,31 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
       }
     `;
 
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+    const aiResponse = await anthropic.messages.create({
+      model: "claude-3-haiku",
+      system: "You are a helpful assistant that summarizes web content accurately and concisely.",
       messages: [
-        { role: "system", content: "You are a helpful assistant that summarizes web content accurately and concisely." },
         { role: "user", content: prompt }
       ],
       temperature: 0.3,
       max_tokens: 800,
     });
 
-    const aiContent = aiResponse.choices[0]?.message?.content || '';
-    
+    const aiContent = aiResponse.content || '';
+
     // Parse the AI response
     let parsedContent;
     try {
       // Extract JSON from the response (in case there's any extra text)
       const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
       const jsonString = jsonMatch ? jsonMatch[0] : aiContent;
-      
+
       try {
         // First try standard JSON parsing
         parsedContent = JSON.parse(jsonString);
       } catch (initialParseError) {
         console.log('Initial JSON parsing failed, attempting to fix malformed JSON...');
-        
+
         // Try to fix common JSON formatting issues
         let fixedJsonString = jsonString
           // Replace single quotes with double quotes (but not inside already quoted strings)
@@ -167,7 +165,7 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
           .replace(/:\s*'([^']*)'/g, ': "$1"')
           // Remove trailing commas in objects and arrays
           .replace(/,(\s*[}\]])/g, '$1');
-        
+
         try {
           parsedContent = JSON.parse(fixedJsonString);
         } catch (fixedParseError) {
@@ -261,13 +259,13 @@ export async function POST(request: Request) {
     }
 
     console.log(`Processing emails for user: ${user.email}`);
-    
+
     // Fetch unread emails sent by the logged-in user
     const emails = await fetchUnreadEmails(20, user.email); // Limit to 20 emails and filter by user email
-    
+
     if (emails.length === 0) {
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: 'No new emails to process from your account',
         processed: 0,
         errors: 0
@@ -284,7 +282,7 @@ export async function POST(request: Request) {
       for (const url of email.urls) {
         try {
           const result = await processAndStoreUrl(url, email.userId!, email.subject);
-          
+
           if (result.success) {
             processed++;
             results.push({
@@ -310,7 +308,7 @@ export async function POST(request: Request) {
           });
         }
       }
-      
+
       // Mark email as read regardless of processing success
       await markEmailAsRead(email.messageId);
     }

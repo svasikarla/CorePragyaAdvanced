@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { anthropic } from '@/lib/ai-clients';
 
 // Create a Supabase client
 const supabaseAdmin = createClient(
@@ -134,28 +129,25 @@ export async function POST(request: Request) {
       // Limit the text content to avoid token limit issues
       const truncatedText = textContent.substring(0, 15000); // Limit to ~15K characters
 
-      const aiResponse = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo", // Use a more economical model
-        messages: [
-          {
-            role: "system",
-            content: `You are an AI assistant that extracts, categorizes, and summarizes content from web pages.
-            Extract the main content from the text, ignoring navigation, ads, footers, etc.
-            Then provide a concise summary of the content and categorize it into one of the following categories:
-            - Science
-            - Technology
-            - Artificial Intelligence
-            - Business
-            - Health
-            - Education
-            - Politics
-            - Environment
-            - Arts
-            - Sports
-            - Other
+      const aiResponse = await anthropic.messages.create({
+        model: "claude-3-haiku", // Use a more economical model
+        system: `You are an AI assistant that extracts, categorizes, and summarizes content from web pages.
+        Extract the main content from the text, ignoring navigation, ads, footers, etc.
+        Then provide a concise summary of the content and categorize it into one of the following categories:
+        - Science
+        - Technology
+        - Artificial Intelligence
+        - Business
+        - Health
+        - Education
+        - Politics
+        - Environment
+        - Arts
+        - Sports
+        - Other
 
-            Choose the most appropriate category based on the content.`
-          },
+        Choose the most appropriate category based on the content.`,
+        messages: [
           {
             role: "user",
             content: `Process this text content from ${url} and return a JSON object with the following fields:
@@ -170,14 +162,14 @@ export async function POST(request: Request) {
         response_format: { type: "json_object" }
       });
 
-      if (!aiResponse.choices || aiResponse.choices.length === 0 || !aiResponse.choices[0].message.content) {
+      if (!aiResponse.content) {
         console.error('Invalid AI response:', aiResponse);
         return NextResponse.json({ error: 'Failed to process content with AI' }, { status: 500 });
       }
 
       // Parse the AI response
       try {
-        aiContent = JSON.parse(aiResponse.choices[0].message.content);
+        aiContent = JSON.parse(aiResponse.content);
 
         // Validate the AI response structure
         if (!aiContent.raw_text || !aiContent.summary_text || !aiContent.summary_json || !aiContent.category) {

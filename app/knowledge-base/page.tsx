@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { 
   Plus, Search, Filter, SlidersHorizontal, Lightbulb, Globe, 
-  Bookmark, Trash2, ChevronRight, Mail, RefreshCw
+  Bookmark, Trash2, ChevronRight, Mail, RefreshCw, FileText,
+  AlertCircle, Info as InfoIcon
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase/client"
-import { fetchKnowledgeEntries, KnowledgeStats } from "@/lib/knowledge-utils"
+import { fetchKnowledgeEntries, KnowledgeStats, getSourceDisplay, getSourceIconName } from "@/lib/knowledge-utils"
 import AppLayout from "@/components/layout/AppLayout"
 import KnowledgeDisplay from "@/components/knowledge/KnowledgeDisplay"
 import Link from "next/link"
@@ -29,6 +30,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import PdfUploadDialog from "@/components/knowledge/PdfUploadDialog"
 
 // Create a helper component to render the summary JSON as bullet points
 const SummaryBullets = ({ summaryJson }) => {
@@ -157,6 +159,147 @@ const initialEntries = [
   },
 ]
 
+// Add a PDF upload component
+const PdfUploadDialog = ({ isOpen, onClose, onUpload }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [category, setCategory] = useState('Documents');
+  const { toast } = useToast();
+  
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.type === 'application/pdf') {
+      setFile(selectedFile);
+    } else {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a PDF file",
+        variant: "destructive",
+      });
+      setFile(null);
+    }
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file) {
+      toast({
+        title: "No file selected",
+        description: "Please select a PDF file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsUploading(true);
+    
+    try {
+      // Get the current session using Supabase client
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session || !session.access_token) {
+        throw new Error('Authentication error. Please log in again.');
+      }
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', category);
+      
+      const response = await fetch('/api/process-pdf', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to upload PDF');
+      }
+      
+      toast({
+        title: "PDF uploaded successfully",
+        description: "Your PDF has been processed and added to your knowledge base",
+      });
+      
+      onUpload(result.data);
+      onClose();
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload PDF Document</DialogTitle>
+          <DialogDescription>
+            Upload a PDF file to add to your knowledge base
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="pdf-file" className="text-sm font-medium">
+                PDF File
+              </label>
+              <Input
+                id="pdf-file"
+                type="file"
+                accept=".pdf"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+              {file && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {file.name} ({Math.round(file.size / 1024)} KB)
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="category" className="text-sm font-medium">
+                Category
+              </label>
+              <Input
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Category"
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose} disabled={isUploading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isUploading || !file}>
+              {isUploading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                "Upload PDF"
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Helper function to get color based on category
 const getCategoryColor = (category: string): string => {
   switch (category) {
@@ -229,6 +372,7 @@ export default function KnowledgeBase() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [rawText, setRawText] = useState("")
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [isAddPdfOpen, setIsAddPdfOpen] = useState(false)
   
   // Create a debounced function for search - but we'll only use it for specific events
   const debouncedSetSearchQuery = useCallback(
@@ -592,6 +736,9 @@ export default function KnowledgeBase() {
                 <DropdownMenuItem onClick={() => setTypeFilter('email')}>
                   Email Content
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTypeFilter('pdf')}>
+                  PDF
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             
@@ -716,6 +863,24 @@ export default function KnowledgeBase() {
                   </div>
                 </CardContent>
               </Card>
+              <Card className="bg-gradient-to-br from-indigo-50 to-white">
+                <CardContent className="p-3">
+                  <div className="flex flex-col items-center text-center">
+                    <FileText className="h-6 w-6 text-indigo-700 mb-1" />
+                    <h4 className="font-medium text-sm">Upload PDF</h4>
+                    <p className="text-[10px] text-muted-foreground mt-1 mb-2">
+                      Upload and summarize PDF documents
+                    </p>
+                    <Button 
+                      size="sm" 
+                      className="w-full h-7 text-xs"
+                      onClick={() => setIsAddPdfOpen(true)}
+                    >
+                      Upload PDF
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </>
         )}
@@ -761,14 +926,64 @@ export default function KnowledgeBase() {
     }
   };
 
+  // Function to handle PDF upload
+  const handleAddPdf = (newEntry) => {
+    setEntries(prevEntries => [newEntry, ...prevEntries]);
+    // Remove this line as filteredEntries is computed, not a state variable
+    // setFilteredEntries(prevEntries => [newEntry, ...prevEntries]);
+  };
+
   return (
     <AppLayout user={user}>
       <div className="container py-6 px-4 sm:px-6">
         <div className="mb-6">
-          <h1 className="font-rasa text-2xl font-bold tracking-tight md:text-3xl">Knowledge Hub</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Access, manage, and explore your saved content from across the web and your emails.
-          </p>
+          <h1 className="text-2xl font-bold">Knowledge Base</h1>
+          
+          {/* Add this notice */}
+          <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-amber-800">Notice</h3>
+                <p className="text-xs text-amber-700 mt-1">
+                  PDF uploads are temporarily disabled while we optimize token usage. 
+                  Please use URL import or email import instead.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-between items-center mt-4">
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Knowledge
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsAddUrlOpen(true)}>
+                    <Globe className="mr-2 h-4 w-4" />
+                    Add URL
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    disabled={true} // Disable the PDF upload option
+                    className="text-muted-foreground cursor-not-allowed"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Upload PDF
+                    <span className="ml-2 text-xs text-red-500">(Temporarily unavailable)</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleRefreshFromEmail}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Import from Email
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </div>
 
         {/* Knowledge Stats Dashboard - only show if entries exist */}
@@ -887,9 +1102,17 @@ export default function KnowledgeBase() {
                       >
                         <Globe className="mr-1 h-3 w-3" /> Web
                       </Link>
-                    ) : (
+                    ) : entry.type === "email" ? (
                       <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
                         <Mail className="mr-1 h-3 w-3" /> Email
+                      </span>
+                    ) : entry.type === "pdf" ? (
+                      <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
+                        <FileText className="mr-1 h-3 w-3" /> PDF
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
+                        <Lightbulb className="mr-1 h-3 w-3" /> Source
                       </span>
                     )}
                   </div>
@@ -936,9 +1159,17 @@ export default function KnowledgeBase() {
                   >
                     <Globe className="mr-1 h-3 w-3" /> Source
                   </Link>
-                ) : (
+                ) : selectedEntry.type === "email" ? (
                   <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
                     <Mail className="mr-1 h-3 w-3" /> Email
+                  </span>
+                ) : selectedEntry.type === "pdf" ? (
+                  <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
+                    <FileText className="mr-1 h-3 w-3" /> PDF
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
+                    <Lightbulb className="mr-1 h-3 w-3" /> Source
                   </span>
                 )}
                 <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
@@ -950,6 +1181,12 @@ export default function KnowledgeBase() {
             <div className="mt-4">
               <h3 className="text-sm font-semibold mb-2">Summary</h3>
               <div className="bg-gray-50 p-3 rounded-md mb-4">
+                {selectedEntry.metadata?.processing_note && (
+                  <div className="text-xs text-amber-600 mb-2">
+                    <InfoIcon className="h-3 w-3 inline mr-1" />
+                    {selectedEntry.metadata.processing_note}
+                  </div>
+                )}
                 {selectedEntry.summaryJson ? (
                   <SummaryBullets summaryJson={selectedEntry.summaryJson} />
                 ) : (
@@ -973,9 +1210,11 @@ export default function KnowledgeBase() {
           </DialogContent>
         </Dialog>
       )}
+      <PdfUploadDialog
+        isOpen={isAddPdfOpen}
+        onClose={() => setIsAddPdfOpen(false)}
+        onUpload={handleAddPdf}
+      />
     </AppLayout>
   )
 }
-
-// Add this component to your JSX, just before the closing div of the main container
-// <DebugEntries entries={entries} />

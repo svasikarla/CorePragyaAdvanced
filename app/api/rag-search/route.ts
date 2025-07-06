@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai, anthropic, generateEmbeddings, getModelMapping } from '@/lib/ai-clients';
 
 // Create a Supabase client with admin privileges
 const supabaseAdmin = createClient(
@@ -13,7 +8,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// OpenAI embedding model to use
+// Embedding model to use
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 
 export async function POST(request: Request) {
@@ -38,20 +33,15 @@ export async function POST(request: Request) {
 
     // Get request body parameters
     const { query, limit = 5, useAI = true } = await request.json();
-    
+
     if (!query || typeof query !== 'string' || query.trim() === '') {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
-    
-    // Generate embedding for the query
-    const embeddingResponse = await openai.embeddings.create({
-      model: EMBEDDING_MODEL,
-      input: query.trim(),
-      encoding_format: 'float'
-    });
-    
-    const queryEmbedding = embeddingResponse.data[0].embedding;
-    
+
+    // Generate embedding for the query using Cohere
+    const embeddingResults = await generateEmbeddings(query.trim());
+    const queryEmbedding = embeddingResults[0];
+
     // Search for similar chunks using vector similarity
     const { data: similarChunks, error: searchError } = await supabaseAdmin.rpc(
       'match_embeddings',
@@ -61,15 +51,15 @@ export async function POST(request: Request) {
         match_count: limit
       }
     );
-    
+
     if (searchError) {
       console.error('Error searching embeddings:', searchError);
-      
+
       // If the RPC function doesn't exist, create it
       if (searchError.message && searchError.message.includes('function "match_embeddings" does not exist')) {
         try {
           await createMatchEmbeddingsFunction();
-          
+
           // Try the search again
           const { data: retryChunks, error: retryError } = await supabaseAdmin.rpc(
             'match_embeddings',
@@ -79,44 +69,44 @@ export async function POST(request: Request) {
               match_count: limit
             }
           );
-          
+
           if (retryError) {
             console.error('Error in retry search:', retryError);
             return NextResponse.json({ error: 'Failed to search embeddings' }, { status: 500 });
           }
-          
+
           similarChunks = retryChunks;
         } catch (funcError) {
           console.error('Error creating match_embeddings function:', funcError);
-          return NextResponse.json({ 
-            error: 'Failed to create search function. Please contact support.' 
+          return NextResponse.json({
+            error: 'Failed to create search function. Please contact support.'
           }, { status: 500 });
         }
       } else {
         return NextResponse.json({ error: 'Failed to search embeddings' }, { status: 500 });
       }
     }
-    
+
     if (!similarChunks || similarChunks.length === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         results: [],
         message: 'No similar content found'
       });
     }
-    
+
     // Fetch the full knowledge base entries for the matched chunks
     const kbIds = [...new Set(similarChunks.map(chunk => chunk.kb_id))];
-    
+
     const { data: knowledgeEntries, error: kbError } = await supabaseAdmin
       .from('knowledgebase')
       .select('id, title, category, summary_text, source_ref, source_type')
       .in('id', kbIds);
-    
+
     if (kbError) {
       console.error('Error fetching knowledge entries:', kbError);
       return NextResponse.json({ error: 'Failed to fetch knowledge entries' }, { status: 500 });
     }
-    
+
     // Combine the results
     const results = similarChunks.map(chunk => {
       const knowledgeEntry = knowledgeEntries.find(entry => entry.id === chunk.kb_id);
@@ -133,7 +123,7 @@ export async function POST(request: Request) {
         source_type: knowledgeEntry?.source_type || 'unknown'
       };
     });
-    
+
     // If AI enhancement is requested, generate an AI response
     let aiResponse = null;
     if (useAI && results.length > 0) {
@@ -142,15 +132,12 @@ export async function POST(request: Request) {
         .map(r => r.chunk_text)
         .join('\n\n')
         .substring(0, 15000); // Limit context size
-      
-      // Generate AI response
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+
+      // Generate AI response using Anthropic Claude
+      const completion = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet',
+        system: 'You are an AI assistant for CorePragya, a knowledge management system. Answer the user\'s question based on the provided context. If the context doesn\'t contain relevant information or you cannot find specific information in the context to answer the question, respond with: "I don\'t have enough information about [topic] in your knowledge base."',
         messages: [
-          {
-            role: 'system',
-            content: 'You are an AI assistant for CorePragya, a knowledge management system. Answer the user\'s question based on the provided context. If the context doesn\'t contain relevant information or you cannot find specific information in the context to answer the question, respond with: "I don\'t have enough information about [topic] in your knowledge base."'
-          },
           {
             role: 'user',
             content: `Context information is below.
@@ -165,16 +152,16 @@ IMPORTANT: Only use information from the context above. If the context doesn't c
         temperature: 0.5,
         max_tokens: 500
       });
-      
-      aiResponse = completion.choices[0].message.content;
+
+      aiResponse = completion.content;
     }
-    
+
     return NextResponse.json({
       results,
       aiResponse,
       message: `Found ${results.length} relevant chunks`
     });
-    
+
   } catch (err) {
     const error = err as Error;
     console.error('Unhandled error in RAG search:', error);
@@ -220,14 +207,14 @@ async function createMatchEmbeddingsFunction() {
       END;
       $$;
     `;
-    
+
     const { error } = await supabaseAdmin.rpc('execute_sql', { sql: createFunctionSQL });
-    
+
     if (error) {
       console.error('Error creating match_embeddings function:', error);
       throw new Error(`Failed to create function: ${error.message}`);
     }
-    
+
     console.log('Successfully created match_embeddings function');
     return true;
   } catch (error) {
