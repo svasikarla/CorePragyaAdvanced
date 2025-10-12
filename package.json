@@ -55,6 +55,7 @@
     "embla-carousel-react": "8.5.1",
     "file-type": "^20.5.0",
     "formidable": "^3.5.4",
+    "fuse.js": "^7.1.0",
     "google-auth-library": "^9.15.1",
     "googleapis": "^133.0.0",
     "input-otp": "1.4.1",

@@ -112,29 +112,43 @@ export const setupGmailClient = async () => {
   try {
     // Retrieve tokens from database
     const tokens = await retrieveTokens();
-    
+
     if (!tokens) {
       throw new Error('No stored tokens found. User needs to authenticate.');
     }
-    
+
+    // Check if tokens are expired
+    const now = Date.now();
+    const isExpired = tokens.expiry_date && tokens.expiry_date < now;
+
+    if (isExpired) {
+      throw new Error('Gmail tokens have expired. Please re-authenticate at /setup/gmail');
+    }
+
     const oauth2Client = setupOAuthClient();
     oauth2Client.setCredentials({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expiry_date: tokens.expiry_date
     });
-    
+
     // Set up token refresh handler
     oauth2Client.on('tokens', async (newTokens) => {
-      // Update stored tokens when they're refreshed
-      await storeTokens({
-        access_token: newTokens.access_token || tokens.access_token,
-        refresh_token: newTokens.refresh_token || tokens.refresh_token,
-        expiry_date: newTokens.expiry_date || tokens.expiry_date,
-        scope: newTokens.scope || tokens.scope
-      });
+      console.log('Refreshing Gmail tokens...');
+      try {
+        // Update stored tokens when they're refreshed
+        await storeTokens({
+          access_token: newTokens.access_token || tokens.access_token,
+          refresh_token: newTokens.refresh_token || tokens.refresh_token,
+          expiry_date: newTokens.expiry_date || tokens.expiry_date,
+          scope: newTokens.scope || tokens.scope
+        });
+        console.log('Gmail tokens refreshed successfully');
+      } catch (error) {
+        console.error('Error storing refreshed tokens:', error);
+      }
     });
-    
+
     // Create and return the Gmail API client
     return google.gmail({ version: 'v1', auth: oauth2Client });
   } catch (error) {

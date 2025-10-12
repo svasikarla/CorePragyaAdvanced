@@ -261,7 +261,25 @@ export async function POST(request: Request) {
     console.log(`Processing emails for user: ${user.email}`);
 
     // Fetch unread emails sent by the logged-in user
-    const emails = await fetchUnreadEmails(20, user.email); // Limit to 20 emails and filter by user email
+    let emails;
+    try {
+      emails = await fetchUnreadEmails(20, user.email); // Limit to 20 emails and filter by user email
+    } catch (error) {
+      console.error('Error fetching emails:', error);
+
+      // Return specific error messages for OAuth issues
+      if (error.message.includes('authenticate') || error.message.includes('expired')) {
+        return NextResponse.json({
+          error: error.message,
+          authRequired: true,
+          setupUrl: '/setup/gmail'
+        }, { status: 401 });
+      }
+
+      return NextResponse.json({
+        error: 'Failed to fetch emails: ' + error.message
+      }, { status: 500 });
+    }
 
     if (emails.length === 0) {
       return NextResponse.json({

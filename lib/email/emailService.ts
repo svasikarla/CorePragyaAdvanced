@@ -157,38 +157,51 @@ export const markEmailAsRead = async (messageId: string): Promise<boolean> => {
  */
 export const fetchUnreadEmails = async (maxResults = 50, userEmail?: string): Promise<EmailData[]> => {
   const emails: EmailData[] = [];
-  
+
   try {
     // Get Gmail client using OAuth
     const gmail = await setupGmailClient();
-    
+
     // Build query string
     let query = 'is:unread';
-    
+
     // Add sender filter if userEmail is provided
     if (userEmail) {
       query += ` from:${userEmail}`;
     }
-    
+
+    console.log(`Fetching emails with query: ${query}`);
+
     // Get recent unread emails
     const res = await gmail.users.messages.list({
       userId: process.env.GMAIL_USER_EMAIL,
       q: query,
       maxResults,
     });
-    
+
     const messages = res.data.messages || [];
-    
+    console.log(`Found ${messages.length} unread emails`);
+
     for (const message of messages) {
       const emailData = await processEmailMessage(message);
       if (emailData) {
         emails.push(emailData);
       }
     }
-    
+
     return emails;
   } catch (error) {
     console.error('Error fetching emails:', error);
-    return [];
+
+    // Provide more specific error messages
+    if (error.message.includes('invalid_grant')) {
+      throw new Error('Gmail authentication expired. Please re-authenticate at /setup/gmail');
+    } else if (error.message.includes('No stored tokens found')) {
+      throw new Error('Gmail not connected. Please authenticate at /setup/gmail');
+    } else if (error.message.includes('tokens have expired')) {
+      throw new Error('Gmail tokens expired. Please re-authenticate at /setup/gmail');
+    }
+
+    throw error;
   }
 };

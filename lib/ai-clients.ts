@@ -14,7 +14,7 @@ export const anthropic = new Anthropic({
 
 // Initialize Cohere client
 export const cohere = new CohereClient({
-  token: process.env.COHERE_API_KEY,
+  token: process.env.CO_API_KEY || '',
 });
 
 // Model mappings for easy migration
@@ -56,12 +56,16 @@ export function convertMessagesToAnthropicFormat(messages: any[]): any[] {
 
 // Helper function to generate embeddings using Cohere
 export async function generateEmbeddings(texts: string | string[]): Promise<number[][]> {
+  if (!process.env.CO_API_KEY || process.env.CO_API_KEY === 'your_cohere_api_key_here') {
+    throw new Error('CO_API_KEY environment variable is not set or is using placeholder value. Please get your API key from https://cohere.ai/');
+  }
+
   const response = await cohere.embed({
     texts: Array.isArray(texts) ? texts : [texts],
     model: 'embed-english-v3.0',
     inputType: 'search_query'
   });
-  
+
   return response.embeddings;
 }
 
