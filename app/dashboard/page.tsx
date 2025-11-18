@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Lightbulb, BookOpen, Clock, Plus, BarChart3, PieChart, TrendingUp, Brain } from "lucide-react"
+import { Lightbulb, BookOpen, Clock, Plus, BarChart3, PieChart, TrendingUp, Brain, Network } from "lucide-react"
 import AIInsights from "@/components/dashboard/AIInsights"
 import { fetchKnowledgeEntries, KnowledgeStats } from "@/lib/knowledge-utils"
 import AppLayout from "@/components/layout/AppLayout"
@@ -89,12 +89,20 @@ export default function Dashboard() {
               View insights and analytics about your knowledge base.
             </p>
           </div>
-          <Button className="bg-indigo-700 hover:bg-indigo-800" asChild>
-            <Link href="/knowledge-base">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Knowledge
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/knowledge-graph">
+                <Network className="mr-2 h-4 w-4" />
+                View Graph
+              </Link>
+            </Button>
+            <Button className="bg-indigo-700 hover:bg-indigo-800" asChild>
+              <Link href="/knowledge-base">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Knowledge
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Knowledge Overview */}

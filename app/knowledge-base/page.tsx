@@ -10,7 +10,7 @@ import {
   Plus, Search, Filter, SlidersHorizontal, Lightbulb, Globe,
   Bookmark, Trash2, ChevronRight, Mail, RefreshCw, FileText,
   AlertCircle, Info as InfoIcon, Brain, Map, FlashlightIcon as FlashCard,
-  BarChart3, Zap, X
+  BarChart3, Zap, X, Network
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase/client"
@@ -1526,6 +1526,15 @@ export default function KnowledgeBase() {
               </div>
             </div>
             <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => router.push('/knowledge-graph')}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                <Network className="mr-2 h-4 w-4" />
+                View Graph
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="bg-white hover:bg-indigo-50 border-indigo-200">
