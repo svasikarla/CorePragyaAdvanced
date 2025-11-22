@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, ZoomIn, ZoomOut, Maximize2, Play, Pause, Network, Sparkles } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 // Dynamic import to avoid SSR issues with three.js
@@ -55,7 +55,6 @@ export default function KnowledgeGraphPage() {
 
   const graphRef = useRef<any>();
   const router = useRouter();
-  const supabase = createClient();
 
   // Fetch graph data
   useEffect(() => {
