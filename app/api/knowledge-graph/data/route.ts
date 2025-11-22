@@ -81,15 +81,20 @@ export async function GET(request: Request) {
       throw nodesError;
     }
 
-    // Fetch all links for the user
-    const { data: links, error: linksError } = await supabase
+    // Fetch all links for the user (gracefully handle if table doesn't exist)
+    let links: any[] = [];
+    const { data: linksData, error: linksError } = await supabase
       .from('knowledge_graph_links')
       .select('source_kb_id, target_kb_id, link_strength, link_type, shared_keywords')
       .eq('user_id', user.id);
 
     if (linksError) {
-      console.error('Error fetching links:', linksError);
-      throw linksError;
+      // If table doesn't exist, just log and continue with empty links
+      console.warn('Could not fetch links (table may not exist):', linksError.message);
+      // Don't throw - just use empty array
+      links = [];
+    } else {
+      links = linksData || [];
     }
 
     // Calculate connection counts for each node
