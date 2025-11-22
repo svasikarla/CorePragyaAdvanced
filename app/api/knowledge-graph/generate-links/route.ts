@@ -197,6 +197,18 @@ export async function POST(request: Request) {
 
         if (error) {
           console.error('Error inserting batch:', error);
+
+          // Check if it's a table doesn't exist error
+          if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+            return NextResponse.json(
+              {
+                error: 'Knowledge graph table not found',
+                message: 'Please run the database migration first: node scripts/create-knowledge-graph-links-table.js',
+                details: error.message,
+              },
+              { status: 500 }
+            );
+          }
           // Continue with other batches even if one fails
         } else {
           insertedCount += batch.length;
