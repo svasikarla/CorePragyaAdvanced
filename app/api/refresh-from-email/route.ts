@@ -97,8 +97,8 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
     const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
     const title = titleMatch ? titleMatch[1] : emailSubject || 'Untitled Page';
 
-    // Import Anthropic client
-    const { anthropic } = await import('@/lib/ai-clients');
+    // Import LLM provider
+    const { getLLMProvider, getModelForProvider } = await import('@/lib/ai-clients');
 
     const prompt = `
       Article Title: ${title}
@@ -132,8 +132,11 @@ async function processAndStoreUrl(url: string, userId: string, emailSubject: str
       }
     `;
 
-    const aiResponse = await anthropic.messages.create({
-      model: "claude-3-haiku",
+    const llmProvider = getLLMProvider();
+    const modelName = getModelForProvider('claude-3-haiku');
+
+    const aiResponse = await llmProvider.createCompletion({
+      model: modelName,
       system: "You are a helpful assistant that summarizes web content accurately and concisely.",
       messages: [
         { role: "user", content: prompt }

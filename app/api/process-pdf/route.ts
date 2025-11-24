@@ -5,7 +5,7 @@ import { join } from 'path';
 import { fileTypeFromBuffer } from 'file-type';
 import { createRateLimiter, recordTokenUsage } from '@/lib/rate-limiting';
 import { parsePdf } from '@/lib/pdf-parser';
-import { anthropic } from '@/lib/ai-clients';
+import { getLLMProvider, getModelForProvider } from '@/lib/ai-clients';
 
 // Create a Supabase client
 const supabaseAdmin = createClient(
@@ -158,11 +158,14 @@ export async function POST(request: Request) {
       ? pdfText.substring(0, maxTextLength) + '... [Content truncated due to length]'
       : pdfText;
 
-    // Process with Anthropic Claude
+    // Process with LLM provider
     let aiContent;
     try {
-      const completion = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet',
+      const llmProvider = getLLMProvider();
+      const modelName = getModelForProvider('claude-3-5-sonnet');
+
+      const completion = await llmProvider.createCompletion({
+        model: modelName,
         system: `You are an AI assistant that extracts key information from documents.
           Analyze the following PDF document content (first page only) and provide:
           1. A concise summary (1-2 paragraphs)
@@ -174,7 +177,9 @@ export async function POST(request: Request) {
           Note that you are only seeing the first page of the document, so focus on extracting
           the most important information available and indicate if the content appears to continue.
 
-          Format your response as a JSON object with the following structure:
+          IMPORTANT: You must respond with ONLY a valid JSON object. Do not include any markdown formatting, code blocks, or explanatory text.
+
+          Format your response as a JSON object with exactly this structure:
           {
             "summary_text": "Your concise summary here",
             "summary_json": {
@@ -197,13 +202,25 @@ export async function POST(request: Request) {
       });
 
       // Track token usage
-      inputTokens = completion.usage?.prompt_tokens || 0;
-      outputTokens = completion.usage?.completion_tokens || 0;
+      inputTokens = completion.usage?.input_tokens || 0;
+      outputTokens = completion.usage?.output_tokens || 0;
 
       // Parse the AI response
-      const aiResponseContent = completion.content || '';
+      let aiResponseContent = completion.content || '';
 
       try {
+        // Try to extract JSON from markdown code blocks if present
+        const jsonBlockMatch = aiResponseContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonBlockMatch) {
+          aiResponseContent = jsonBlockMatch[1];
+        } else {
+          // Try to find JSON object in the response
+          const jsonMatch = aiResponseContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            aiResponseContent = jsonMatch[0];
+          }
+        }
+
         aiContent = JSON.parse(aiResponseContent);
         // Manually add the raw_text field after parsing
         aiContent.raw_text = truncatedText;
@@ -211,7 +228,7 @@ export async function POST(request: Request) {
         aiContent.processing_note = "Only the first page of the PDF was processed.";
       } catch (parseError) {
         console.error('Error parsing AI response:', parseError);
-        console.log('Raw AI response:', aiResponseContent);
+        console.error('Raw AI response:', completion.content);
 
         // Fallback to a basic structure if parsing fails
         aiContent = {
@@ -227,7 +244,7 @@ export async function POST(request: Request) {
         };
       }
     } catch (aiError) {
-      console.error('OpenAI API error:', aiError);
+      console.error('LLM API error:', aiError);
       return NextResponse.json({ error: 'AI processing failed' }, { status: 500 });
     }
 
@@ -301,10 +318,11 @@ export async function POST(request: Request) {
       }
 
       // Record token usage before returning response
+      const modelUsed = getModelForProvider('claude-3-5-sonnet');
       await recordTokenUsage(
         user.id,
         '/api/process-pdf',
-        'claude-3-5-sonnet', // The model we used
+        modelUsed, // The model we used
         inputTokens,
         outputTokens
       );

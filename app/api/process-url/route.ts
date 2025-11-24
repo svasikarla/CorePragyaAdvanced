@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { anthropic } from '@/lib/ai-clients';
+import { getLLMProvider, getModelForProvider } from '@/lib/ai-clients';
 
 // Create a Supabase client
 const supabaseAdmin = createClient(
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Process the content with OpenAI
+    // Process the content with LLM provider
     let aiContent;
     try {
       // Extract text from HTML to reduce token usage
@@ -129,8 +129,11 @@ export async function POST(request: Request) {
       // Limit the text content to avoid token limit issues
       const truncatedText = textContent.substring(0, 15000); // Limit to ~15K characters
 
-      const aiResponse = await anthropic.messages.create({
-        model: "claude-3-haiku", // Use a more economical model
+      const llmProvider = getLLMProvider();
+      const modelName = getModelForProvider('claude-3-haiku');
+
+      const aiResponse = await llmProvider.createCompletion({
+        model: modelName,
         system: `You are an AI assistant that extracts, categorizes, and summarizes content from web pages.
         Extract the main content from the text, ignoring navigation, ads, footers, etc.
         Then provide a concise summary of the content and categorize it into one of the following categories:
@@ -146,20 +149,31 @@ export async function POST(request: Request) {
         - Sports
         - Other
 
-        Choose the most appropriate category based on the content.`,
+        Choose the most appropriate category based on the content.
+
+        IMPORTANT: You must respond with ONLY a valid JSON object. Do not include any markdown formatting, code blocks, or explanatory text.
+
+        Return a JSON object with exactly this structure:
+        {
+          "raw_text": "A cleaned version of the main textual content (max 1000 words)",
+          "summary_text": "A concise summary of the content (max 250 words)",
+          "summary_json": {
+            "key_points": ["point 1", "point 2", "point 3"],
+            "main_ideas": ["idea 1", "idea 2"],
+            "insights": ["insight 1", "insight 2"]
+          },
+          "category": "One of the predefined categories"
+        }`,
         messages: [
           {
             role: "user",
-            content: `Process this text content from ${url} and return a JSON object with the following fields:
-            1. raw_text: A cleaned version of the main textual content (max 1000 words)
-            2. summary_text: A concise summary of the content (max 250 words)
-            3. summary_json: A JSON object with key points and concepts from the content (max 5 key points)
-            4. category: One of the predefined categories (Science, Technology, Artificial Intelligence, Business, Health, Education, Politics, Environment, Arts, Sports, Other)
+            content: `Process this text content from ${url}:
 
             Text content: ${truncatedText}`
           }
         ],
-        response_format: { type: "json_object" }
+        temperature: 0.3,
+        max_tokens: 1000,
       });
 
       if (!aiResponse.content) {
@@ -169,7 +183,21 @@ export async function POST(request: Request) {
 
       // Parse the AI response
       try {
-        aiContent = JSON.parse(aiResponse.content);
+        let contentToParse = aiResponse.content;
+
+        // Try to extract JSON from markdown code blocks if present
+        const jsonBlockMatch = contentToParse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonBlockMatch) {
+          contentToParse = jsonBlockMatch[1];
+        } else {
+          // Try to find JSON object in the response
+          const jsonMatch = contentToParse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            contentToParse = jsonMatch[0];
+          }
+        }
+
+        aiContent = JSON.parse(contentToParse);
 
         // Validate the AI response structure
         if (!aiContent.raw_text || !aiContent.summary_text || !aiContent.summary_json || !aiContent.category) {
@@ -188,12 +216,13 @@ export async function POST(request: Request) {
           aiContent.category = 'Other';
         }
       } catch (parseError) {
-        console.error('Error parsing AI response:', parseError, aiResponse.choices[0].message.content);
+        console.error('Error parsing AI response:', parseError);
+        console.error('AI response content:', aiResponse.content);
         return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 });
       }
     } catch (error) {
       const aiError = error as Error;
-      console.error('OpenAI API error:', aiError);
+      console.error('LLM API error:', aiError);
       return NextResponse.json({
         error: `AI processing error: ${aiError.message || 'Unknown error'}`
       }, { status: 500 });

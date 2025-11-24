@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { openai, anthropic, generateEmbeddings, getModelMapping } from '@/lib/ai-clients';
+import { generateEmbeddings, getLLMProvider, getModelForProvider } from '@/lib/ai-clients';
 
 // Create a Supabase client with admin privileges
 const supabaseAdmin = createClient(
@@ -133,9 +133,12 @@ export async function POST(request: Request) {
         .join('\n\n')
         .substring(0, 15000); // Limit context size
 
-      // Generate AI response using Anthropic Claude
-      const completion = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet',
+      // Generate AI response using LLM provider
+      const llmProvider = getLLMProvider();
+      const modelName = getModelForProvider('claude-3-5-sonnet');
+
+      const completion = await llmProvider.createCompletion({
+        model: modelName,
         system: 'You are an AI assistant for CorePragya, a knowledge management system. Answer the user\'s question based on the provided context. If the context doesn\'t contain relevant information or you cannot find specific information in the context to answer the question, respond with: "I don\'t have enough information about [topic] in your knowledge base."',
         messages: [
           {
