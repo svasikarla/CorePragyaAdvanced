@@ -43,6 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   HoverCard,
@@ -240,9 +241,8 @@ const LearningPathSuggestions = ({ entries, onCreatePath }: LearningPathSuggesti
                 <h3 className="font-semibold text-gray-900">{path.title}</h3>
                 <p className="text-sm text-gray-600 mt-1">{path.description}</p>
               </div>
-              <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                path.difficulty === 'Advanced' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-              }`}>
+              <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${path.difficulty === 'Advanced' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                }`}>
                 {path.difficulty}
               </span>
             </div>
@@ -421,16 +421,16 @@ const SummaryBullets = ({ summaryJson }: SummaryBulletsProps) => {
   // Handle the expected format with key_points, main_ideas, and insights arrays
   if (typeof summaryJson === 'object') {
     // Check if it's the expected format with arrays
-    if (Array.isArray(summaryJson.key_points) || 
-        Array.isArray(summaryJson.main_ideas) || 
-        Array.isArray(summaryJson.insights)) {
-      
+    if (Array.isArray(summaryJson.key_points) ||
+      Array.isArray(summaryJson.main_ideas) ||
+      Array.isArray(summaryJson.insights)) {
+
       const keyPoints = Array.isArray(summaryJson.key_points) ? summaryJson.key_points : [];
       const mainIdeas = Array.isArray(summaryJson.main_ideas) ? summaryJson.main_ideas : [];
       const insights = Array.isArray(summaryJson.insights) ? summaryJson.insights : [];
-      
+
       allPoints = [...keyPoints, ...mainIdeas, ...insights];
-    } 
+    }
     // Handle the numeric key format (1, 2, 3, etc.)
     else {
       // Convert numeric keys to an array of values
@@ -440,14 +440,14 @@ const SummaryBullets = ({ summaryJson }: SummaryBulletsProps) => {
         .map(key => summaryJson[key]);
     }
   }
-  
+
   // Limit to prevent overcrowding
   allPoints = allPoints.slice(0, 3);
-  
+
   if (allPoints.length === 0) {
     return null;
   }
-  
+
   return (
     <div className="space-y-2">
       {allPoints.map((point, index) => (
@@ -544,7 +544,7 @@ const initialEntries = [
 // Add this component temporarily for debugging
 const DebugEntries = ({ entries }) => {
   if (process.env.NODE_ENV !== 'development') return null;
-  
+
   return (
     <div className="hidden">
       <pre>{JSON.stringify(entries[0]?.summaryJson, null, 2)}</pre>
@@ -610,7 +610,7 @@ export default function KnowledgeBase() {
   })
   const { toast } = useToast()
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
-  
+
   // Add all new state variables here, at the top level with other state declarations
   const [selectedEntry, setSelectedEntry] = useState(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -760,7 +760,7 @@ export default function KnowledgeBase() {
       setIsFetchingEntries(false);
     }
   }, [isFetchingEntries]); // Add dependencies for useCallback
-  
+
   const handleSignOut = () => {
     supabase.auth.signOut().then(() => {
       window.location.href = "/login"
@@ -811,7 +811,7 @@ export default function KnowledgeBase() {
       try {
         const jsonResponse = await response.json();
         responseData = jsonResponse.data;
-        
+
         console.log('Response data:', responseData);
 
         if (!responseData || !responseData.id || !responseData.summary_text) {
@@ -835,7 +835,7 @@ export default function KnowledgeBase() {
       };
 
       console.log('New entry created:', newEntry);
-      
+
       // Update the entries state with the new entry
       setEntries(prevEntries => [newEntry, ...prevEntries]);
       setUrl("");
@@ -863,7 +863,7 @@ export default function KnowledgeBase() {
 
   const handleRefreshFromEmail = async () => {
     setIsRefreshing(true);
-    
+
     try {
       // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
@@ -906,7 +906,7 @@ export default function KnowledgeBase() {
       }
 
       const data = await response.json();
-      
+
       // Refresh the knowledge base entries
       if (user?.id) {
         await fetchKnowledgeBaseEntries(user.id);
@@ -917,7 +917,7 @@ export default function KnowledgeBase() {
         title: "Email Refresh Complete",
         description: data.message || `Processed ${data.processed} URLs from emails`,
       });
-      
+
       // If there were any errors, show a more detailed message
       if (data.errors > 0) {
         toast({
@@ -1047,7 +1047,7 @@ export default function KnowledgeBase() {
   // Improve the SearchAndFilters component for better usability
   const SearchAndFilters = () => {
     const uniqueCategories = [...new Set(entries.map(entry => entry.category))].filter(Boolean);
-    
+
     return (
       <div className="mb-4 space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1085,7 +1085,7 @@ export default function KnowledgeBase() {
             </div>
           </div>
         </div>
-        
+
         {uniqueCategories.length > 0 && (
           <div className="bg-white p-4 rounded-lg border border-indigo-100 shadow-sm">
             <fieldset>
@@ -1122,100 +1122,151 @@ export default function KnowledgeBase() {
     );
   };
 
-  // More compact empty state
-  const EmptyState = () => {
+  // Consolidated Action Toolbar Component
+  const ActionToolbar = () => {
     return (
-      <Card className="flex flex-col items-center justify-center p-6 text-center">
-        {searchQuery ? (
-          <>
-            <div className="rounded-full bg-amber-100 p-2">
-              <Search className="h-4 w-4 text-amber-700" />
-            </div>
-            <h3 className="mt-3 font-rasa text-base font-bold">No entries found</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              No entries match your search query. Try a different search term or clear filters.
+      <div className="mb-8 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-playfair font-bold text-gray-900 tracking-tight">
+              Knowledge Base
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage and explore your saved content.
             </p>
-            <Button 
-              variant="outline" 
-              className="mt-3 h-8 text-xs"
-              size="sm"
-              onClick={() => {
+          </div>
+
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Content
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => document.getElementById('url-input-dialog')?.click()}>
+                  <Globe className="mr-2 h-4 w-4 text-indigo-500" />
+                  <span>Add from URL</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleRefreshFromEmail}>
+                  <Mail className="mr-2 h-4 w-4 text-purple-500" />
+                  <span>Import from Email</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsAddPdfOpen(true)}>
+                  <FileText className="mr-2 h-4 w-4 text-red-500" />
+                  <span>Upload PDF</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Hidden trigger for URL dialog - to be replaced with a proper Dialog later if needed, 
+            but for now reusing the existing logic by focusing an input is tricky without the card.
+            Let's add a Dialog for URL input instead.
+        */}
+        <Dialog>
+          <DialogTrigger asChild>
+            <button id="url-input-dialog" className="hidden">Open URL Dialog</button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Web Content</DialogTitle>
+              <DialogDescription>
+                Paste a URL to summarize and save to your knowledge base.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={(e) => {
+              handleAddUrl(e);
+              // Close dialog logic would go here, but we'll rely on the loading state for now
+            }} className="space-y-4 pt-4">
+              <Input
+                type="url"
+                placeholder="https://example.com/article"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                required
+                autoFocus
+              />
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Add URL'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <SearchBar
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              onClearSearch={() => {
                 setSearchQuery('');
-                setSelectedCategory(null);
-                setTypeFilter('all');
+                setDebouncedSearchQuery('');
+                setIsSearching(false);
               }}
+              onDebouncedSearchChange={debouncedSetSearchQuery}
+            />
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <FilterButtons
+                typeFilter={typeFilter}
+                onTypeFilterChange={setTypeFilter}
+              />
+
+              <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+                <SortDropdown
+                  sortOrder={sortOrder}
+                  onSortOrderChange={setSortOrder}
+                />
+                <BulkActionsButton
+                  isBulkMode={isBulkMode}
+                  onToggleBulkMode={() => {
+                    setIsBulkMode(!isBulkMode);
+                    setSelectedEntries([]);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Category Pills */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              variant={selectedCategory === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(null)}
+              className={`rounded-full text-xs h-8 ${selectedCategory === null ? 'bg-gray-900 text-white hover:bg-gray-800' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
             >
-              Clear All Filters
+              All
             </Button>
-          </>
-        ) : (
-          <>
-            <div className="rounded-full bg-indigo-100 p-2">
-              <Lightbulb className="h-4 w-4 text-indigo-700" />
-            </div>
-            <h3 className="mt-3 font-rasa text-base font-bold">Your knowledge base is empty</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Start building your knowledge base by adding URLs or importing from email.
-            </p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Card className="bg-gradient-to-br from-indigo-50 to-white">
-                <CardContent className="p-3">
-                  <div className="flex flex-col items-center text-center">
-                    <Globe className="h-6 w-6 text-indigo-700 mb-1" />
-                    <h4 className="font-medium text-sm">Add Web Content</h4>
-                    <p className="text-[10px] text-muted-foreground mt-1 mb-2">
-                      Summarize and save articles from the web
-                    </p>
-                    <Button 
-                      size="sm" 
-                      className="w-full h-7 text-xs"
-                      onClick={() => document.getElementById('url-input')?.focus()}
-                    >
-                      Add URL
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-to-br from-indigo-50 to-white">
-                <CardContent className="p-3">
-                  <div className="flex flex-col items-center text-center">
-                    <Mail className="h-6 w-6 text-indigo-700 mb-1" />
-                    <h4 className="font-medium text-sm">Import from Email</h4>
-                    <p className="text-[10px] text-muted-foreground mt-1 mb-2">
-                      Extract knowledge from your emails
-                    </p>
-                    <Button 
-                      size="sm" 
-                      className="w-full h-7 text-xs"
-                      onClick={handleRefreshFromEmail}
-                    >
-                      Connect Email
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-to-br from-indigo-50 to-white">
-                <CardContent className="p-3">
-                  <div className="flex flex-col items-center text-center">
-                    <FileText className="h-6 w-6 text-indigo-700 mb-1" />
-                    <h4 className="font-medium text-sm">Upload PDF</h4>
-                    <p className="text-[10px] text-muted-foreground mt-1 mb-2">
-                      Upload and summarize PDF documents
-                    </p>
-                    <Button 
-                      size="sm" 
-                      className="w-full h-7 text-xs"
-                      onClick={() => setIsAddPdfOpen(true)}
-                    >
-                      Upload PDF
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-      </Card>
+            {[...new Set(entries.map(entry => entry.category))].filter(Boolean).map(category => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(category)}
+                className={`rounded-full text-xs h-8 ${selectedCategory === category
+                    ? 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200'
+                    : 'text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -1224,7 +1275,7 @@ export default function KnowledgeBase() {
     setSelectedEntry(entry);
     setIsDetailOpen(true);
     setIsLoadingDetail(true);
-    
+
     try {
       // Fetch the raw_text from Supabase
       const { data, error } = await supabase
@@ -1232,17 +1283,17 @@ export default function KnowledgeBase() {
         .select('raw_text')
         .eq('id', entry.id)
         .single();
-      
+
       if (error) throw error;
-      
+
       // Format the raw text - split into paragraphs
-      const formattedText = data.raw_text 
+      const formattedText = data.raw_text
         ? data.raw_text
-            .split('\n')
-            .filter(para => para.trim().length > 0)
-            .join('\n\n')
+          .split('\n')
+          .filter(para => para.trim().length > 0)
+          .join('\n\n')
         : "No content available";
-      
+
       setRawText(formattedText);
     } catch (error) {
       console.error('Error fetching entry details:', error);
@@ -1500,128 +1551,7 @@ export default function KnowledgeBase() {
   return (
     <AppLayout>
       <div className="container py-6 px-4 sm:px-6">
-        {/* Enhanced Header with AI Learning Focus */}
-        <div className="mb-6 bg-gradient-to-r from-indigo-50 to-white p-6 rounded-lg border border-indigo-100">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-playfair font-bold text-indigo-900">
-                Your Learning Knowledge Base
-              </h1>
-              <p className="text-lg text-indigo-700 mt-2">
-                Transform your saved content into active learning with AI-powered tools
-              </p>
-              <div className="flex flex-wrap gap-4 mt-3 text-sm text-indigo-600">
-                <span className="flex items-center">
-                  <FileText className="h-4 w-4 mr-1" />
-                  {knowledgeStats.totalEntries} articles saved
-                </span>
-                <span className="flex items-center">
-                  <Brain className="h-4 w-4 mr-1" />
-                  Ready for AI analysis
-                </span>
-                <span className="flex items-center">
-                  <Zap className="h-4 w-4 mr-1" />
-                  3x faster learning
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => router.push('/knowledge-graph')}
-                className="bg-indigo-600 hover:bg-indigo-700"
-              >
-                <Network className="mr-2 h-4 w-4" />
-                View Graph
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="bg-white hover:bg-indigo-50 border-indigo-200">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Content
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleRefreshFromEmail}>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Refresh from Email
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button onClick={handleSignOut} variant="outline" size="sm" className="bg-white hover:bg-red-50 border-red-200 text-red-700">
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Knowledge Display Component */}
-        {entries && entries.length > 0 && <KnowledgeDisplay stats={knowledgeStats} compact={true} />}
-
-        <div className="grid gap-6 mb-8 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Globe className="mr-2 h-5 w-5" />
-                Add URL
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddUrl} className="flex space-x-2">
-                <Input
-                  id="url-input"
-                  type="url"
-                  placeholder="Paste a URL to summarize..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                />
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Processing
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Mail className="mr-2 h-5 w-5" />
-                Email Import
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Import and summarize content from your connected email accounts.
-              </p>
-              <Button onClick={handleRefreshFromEmail} disabled={isRefreshing} className="w-full">
-                {isRefreshing ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Refreshing from Email
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Refresh from Email Shared with CorePragya
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <SearchAndFilters />
+        <ActionToolbar />
 
         {/* Search Results Summary */}
         <SearchResultSummary
@@ -1639,23 +1569,24 @@ export default function KnowledgeBase() {
           <EmptyState />
         ) : (
           <AnimatedWrapper animation="fadeIn" duration="normal">
-            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
               {filteredEntries.map((entry, index) => (
-                <AnimatedWrapper
-                  key={entry.id}
-                  animation="slideUp"
-                  delay={index < 6 ? (['none', 'short', 'short', 'medium', 'medium', 'medium'] as const)[index] : 'none'}
-                >
-                  <KnowledgeCard
-                    entry={entry}
-                    searchQuery={debouncedSearchQuery}
-                    onReadMore={handleReadMore}
-                    onDelete={handleDeleteEntry}
-                    getCategoryColor={getCategoryColor}
-                    getCategoryColorValue={getCategoryColorValue}
-                    isDeleting={deletingEntries.has(entry.id)}
-                  />
-                </AnimatedWrapper>
+                <div key={entry.id} className="break-inside-avoid">
+                  <AnimatedWrapper
+                    animation="slideUp"
+                    delay={index < 6 ? (['none', 'short', 'short', 'medium', 'medium', 'medium'] as const)[index] : 'none'}
+                  >
+                    <KnowledgeCard
+                      entry={entry}
+                      searchQuery={debouncedSearchQuery}
+                      onReadMore={handleReadMore}
+                      onDelete={handleDeleteEntry}
+                      getCategoryColor={getCategoryColor}
+                      getCategoryColorValue={getCategoryColorValue}
+                      isDeleting={deletingEntries.has(entry.id)}
+                    />
+                  </AnimatedWrapper>
+                </div>
               ))}
             </div>
           </AnimatedWrapper>

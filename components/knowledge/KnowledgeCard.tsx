@@ -76,7 +76,7 @@ const SummaryBullets = ({ summaryJson }: SummaryBulletsProps) => {
         .split(/[•\-\*]\s*/)
         .filter(point => point.trim().length > 0)
         .map(point => point.trim());
-      
+
       if (summaryPoints.length > 1) {
         allPoints = summaryPoints.slice(1); // Skip first empty element
       }
@@ -143,83 +143,90 @@ export const KnowledgeCard = React.memo(function KnowledgeCard({
     <LoadingOverlay isVisible={isDeleting} message="Deleting...">
       <HoverAnimation effect="lift">
         <Card
-          className="overflow-hidden flex flex-col h-full border-l-4 bg-gradient-to-br from-white to-gray-50 transition-all duration-300 ease-in-out hover:shadow-xl group focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2"
-          style={{ borderLeftColor: getCategoryColorValue(entry.category) }}
+          className="overflow-hidden flex flex-col h-full border-0 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out group bg-white"
           tabIndex={0}
           role="article"
           aria-label={`Knowledge entry: ${entry.title}`}
           onKeyDown={handleCardKeyDown}
         >
-      <CardHeader className="p-5 pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-3 flex-1">
-            <CardTitle className="line-clamp-2 text-lg font-playfair font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors duration-300 leading-tight cursor-pointer">
-              <SafeHighlightedText text={entry.title} searchQuery={searchQuery} />
-            </CardTitle>
-          </div>
-          <div className="flex space-x-1 ml-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="min-h-[32px] min-w-[32px] h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-all duration-300 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 opacity-0 group-hover:opacity-100"
-              onClick={() => onDelete(entry.id)}
-              aria-label={`Delete ${entry.title}`}
-            >
-              <Trash2 className="h-4 w-4 transition-transform duration-300 hover:scale-110" aria-hidden="true" />
-            </Button>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${getCategoryColor(entry.category)}`}>
-            {entry.category}
-          </span>
-          {entry.type === "url" ? (
-            <Link
-              href={entry.source}
-              target="_blank"
-              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition-colors shadow-sm"
-            >
-              <Globe className="mr-1 h-3 w-3" /> Web
-            </Link>
-          ) : entry.type === "email" ? (
-            <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 shadow-sm">
-              <Mail className="mr-1 h-3 w-3" /> Email
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 shadow-sm">
-              <Lightbulb className="mr-1 h-3 w-3" /> Source
-            </span>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-5 pt-2 flex-grow">
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-          {entry.summaryJson ? (
-            <SummaryBullets summaryJson={entry.summaryJson} />
-          ) : (
-            <p className="line-clamp-3 text-sm text-gray-700 leading-relaxed">
-              <SafeHighlightedText text={entry.summary} searchQuery={searchQuery} />
-            </p>
-          )}
-        </div>
-      </CardContent>
-      <CardFooter className="p-5 pt-2">
-        <div className="w-full space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              {new Date(entry.date).toLocaleDateString()}
-            </span>
-            <Button
-              variant="link"
-              className="min-h-[44px] h-auto p-2 text-indigo-700 hover:text-indigo-800 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-300 group/button"
-              onClick={() => onReadMore(entry)}
-              aria-label={`Read more about ${entry.title}`}
-            >
-              Read More <ChevronRight className="ml-1 h-3 w-3 transition-transform duration-300 group-hover/button:translate-x-1" aria-hidden="true" />
-            </Button>
-          </div>
-        </div>
-      </CardFooter>
+          {/* Decorative top border based on category */}
+          <div
+            className="h-1.5 w-full"
+            style={{ backgroundColor: getCategoryColorValue(entry.category) }}
+          />
+
+          <CardHeader className="p-5 pb-2 space-y-3">
+            <div className="flex justify-between items-start gap-3">
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${getCategoryColor(entry.category)}`}>
+                    {entry.category}
+                  </span>
+                </div>
+                <CardTitle
+                  className="text-lg font-bold text-gray-900 leading-snug group-hover:text-indigo-600 transition-colors cursor-pointer"
+                  onClick={() => onReadMore(entry)}
+                >
+                  <SafeHighlightedText text={entry.title} searchQuery={searchQuery} />
+                </CardTitle>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 -mr-2 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(entry.id);
+                }}
+                aria-label={`Delete ${entry.title}`}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-5 pt-2 flex-grow">
+            <div className="text-sm text-gray-600 leading-relaxed line-clamp-4">
+              {entry.summaryJson ? (
+                <SummaryBullets summaryJson={entry.summaryJson} />
+              ) : (
+                <p>
+                  <SafeHighlightedText text={entry.summary} searchQuery={searchQuery} />
+                </p>
+              )}
+            </div>
+          </CardContent>
+
+          <CardFooter className="p-5 pt-0 pb-5 mt-auto border-t border-gray-50 bg-gray-50/50">
+            <div className="w-full flex items-center justify-between text-xs text-gray-500 pt-3">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5" title="Source Type">
+                  {entry.type === "url" ? (
+                    <Globe className="h-3.5 w-3.5 text-indigo-400" />
+                  ) : entry.type === "email" ? (
+                    <Mail className="h-3.5 w-3.5 text-purple-400" />
+                  ) : (
+                    <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
+                  )}
+                  <span className="font-medium">
+                    {entry.type === "url" ? "Web" : entry.type === "email" ? "Email" : "Note"}
+                  </span>
+                </span>
+                <span className="text-gray-300">•</span>
+                <span>{new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 text-indigo-600 hover:text-indigo-700 hover:bg-transparent font-medium group/btn"
+                onClick={() => onReadMore(entry)}
+              >
+                Read <ChevronRight className="ml-1 h-3 w-3 transition-transform group-hover/btn:translate-x-0.5" />
+              </Button>
+            </div>
+          </CardFooter>
         </Card>
       </HoverAnimation>
     </LoadingOverlay>
