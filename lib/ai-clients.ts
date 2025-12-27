@@ -6,6 +6,7 @@ import {
   AnthropicProvider,
   AzureOpenAIProvider,
   OpenAIProvider,
+  GroqProvider,
   getProviderModel,
 } from './llm-provider';
 
@@ -51,6 +52,12 @@ export function getLLMProvider(): LLMProvider {
       }
       return new OpenAIProvider(process.env.OPENAI_API_KEY);
 
+    case 'groq':
+      if (!process.env.GROQ_API_KEY) {
+        throw new Error('GROQ_API_KEY is required when LLM_PROVIDER is groq');
+      }
+      return new GroqProvider(process.env.GROQ_API_KEY);
+
     case 'anthropic':
     default:
       if (!process.env.ANTHROPIC_API_KEY) {
@@ -95,7 +102,7 @@ export function convertMessagesToAnthropicFormat(messages: any[]): any[] {
         content: msg.content
       };
     }
-    
+
     return {
       role: role === 'assistant' ? 'assistant' : 'user',
       content: msg.content

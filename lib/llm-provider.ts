@@ -124,9 +124,9 @@ export class AzureOpenAIProvider implements LLMProvider {
       content,
       usage: usage
         ? {
-            input_tokens: usage.prompt_tokens,
-            output_tokens: usage.completion_tokens,
-          }
+          input_tokens: usage.prompt_tokens,
+          output_tokens: usage.completion_tokens,
+        }
         : undefined,
     };
   }
@@ -180,9 +180,9 @@ export class OpenAIProvider implements LLMProvider {
       content,
       usage: usage
         ? {
-            input_tokens: usage.prompt_tokens,
-            output_tokens: usage.completion_tokens,
-          }
+          input_tokens: usage.prompt_tokens,
+          output_tokens: usage.completion_tokens,
+        }
         : undefined,
     };
   }
@@ -212,14 +212,79 @@ export const PROVIDER_MODEL_MAPPINGS = {
     'claude-3-haiku': 'gpt-3.5-turbo',
     'claude-3-opus': 'gpt-4',
   },
+  groq: {
+    'claude-3-5-sonnet': 'llama3-70b-8192',
+    'claude-3-haiku': 'llama3-8b-8192',
+    'claude-3-opus': 'llama3-70b-8192',
+  },
 };
+
+// Groq provider implementation
+export class GroqProvider implements LLMProvider {
+  private client: OpenAI;
+
+  constructor(apiKey: string) {
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: 'https://api.groq.com/openai/v1',
+    });
+  }
+
+  async createCompletion(params: LLMCompletionParams): Promise<LLMResponse> {
+    // Convert messages to OpenAI format (compatible with Groq)
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+
+    // Add system message if provided
+    if (params.system) {
+      messages.push({
+        role: 'system',
+        content: params.system,
+      });
+    }
+
+    // Add other messages
+    params.messages.forEach(msg => {
+      if (msg.role !== 'system') {
+        messages.push({
+          role: msg.role,
+          content: msg.content,
+        });
+      }
+    });
+
+    const response = await this.client.chat.completions.create({
+      model: params.model,
+      messages,
+      temperature: params.temperature,
+      max_tokens: params.max_tokens || 1024,
+    });
+
+    const content = response.choices[0]?.message?.content || '';
+    const usage = response.usage;
+
+    return {
+      content,
+      usage: usage
+        ? {
+          input_tokens: usage.prompt_tokens,
+          output_tokens: usage.completion_tokens,
+        }
+        : undefined,
+    };
+  }
+
+  getProviderName(): string {
+    return 'groq';
+  }
+}
 
 // Get the appropriate model name for the provider
 export function getProviderModel(
   provider: string,
   requestedModel: string
 ): string {
-  const mappings = PROVIDER_MODEL_MAPPINGS[provider];
-  if (!mappings) return requestedModel;
-  return mappings[requestedModel] || requestedModel;
+  const mappings = PROVIDER_MODEL_MAPPINGS as Record<string, Record<string, string>>;
+  const providerMappings = mappings[provider];
+  if (!providerMappings) return requestedModel;
+  return providerMappings[requestedModel] || requestedModel;
 }
