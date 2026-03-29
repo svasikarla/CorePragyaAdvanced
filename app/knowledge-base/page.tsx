@@ -625,30 +625,39 @@ export default function KnowledgeBase() {
 
   // Advanced search state - temporarily removed
 
-  // Learning progress state - mock data for demonstration
+  // Learning progress state
   const [learningProgress, setLearningProgress] = useState<Record<string, {
     flashcardsGenerated: boolean;
     conceptMapCreated: boolean;
     questionsAsked: number;
     lastStudied: Date | null;
     completionPercentage: number;
-  }>>({
-    // Mock progress data for demonstration
-    "1": {
-      flashcardsGenerated: true,
-      conceptMapCreated: false,
-      questionsAsked: 3,
-      lastStudied: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      completionPercentage: 65
-    },
-    "2": {
-      flashcardsGenerated: false,
-      conceptMapCreated: true,
-      questionsAsked: 1,
-      lastStudied: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      completionPercentage: 40
-    }
-  })
+  }>>({})
+
+  // Flashcard modal state
+  const [flashcardModal, setFlashcardModal] = useState<{
+    open: boolean;
+    entryTitle: string;
+    cards: { question: string; answer: string }[];
+    currentIndex: number;
+    showAnswer: boolean;
+  }>({ open: false, entryTitle: '', cards: [], currentIndex: 0, showAnswer: false })
+
+  // Concept map modal state
+  const [conceptMapModal, setConceptMapModal] = useState<{
+    open: boolean;
+    entryTitle: string;
+    data: { centralConcept: string; nodes: { id: string; label: string; description: string }[]; edges: { from: string; to: string; label: string }[] } | null;
+  }>({ open: false, entryTitle: '', data: null })
+
+  // Ask AI modal state
+  const [askAIModal, setAskAIModal] = useState<{
+    open: boolean;
+    entry: any;
+    question: string;
+    answer: string;
+    isLoading: boolean;
+  }>({ open: false, entry: null, question: '', answer: '', isLoading: false })
 
   // Create a debounced function for search - but we'll only use it for specific events
   const debouncedSetSearchQuery = useCallback(
@@ -1312,133 +1321,147 @@ export default function KnowledgeBase() {
     // setFilteredEntries(prevEntries => [newEntry, ...prevEntries]);
   };
 
+  // Helper to save learning progress to API
+  const saveLearningProgress = async (entryId: string, updates: Partial<{
+    flashcardsGenerated: boolean;
+    conceptMapCreated: boolean;
+    questionsAsked: number;
+    completionPercentage: number;
+  }>) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const current = learningProgress[entryId] || { flashcardsGenerated: false, conceptMapCreated: false, questionsAsked: 0, completionPercentage: 0, lastStudied: null };
+      await fetch('/api/learning-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ entryId, ...current, ...updates }),
+      });
+    } catch (e) {
+      console.error('Failed to persist progress', e);
+    }
+  };
+
   // AI Learning Feature Handlers
   const handleGenerateFlashcards = async (entry) => {
-    toast({
-      title: "Generating Flashcards",
-      description: `Creating smart flashcards from "${entry.title}"...`,
-    });
+    toast({ title: "Generating Flashcards", description: `Creating smart flashcards from "${entry.title}"...` });
 
     try {
-      // TODO: Implement flashcard generation API call
-      // For now, show success message and update progress
-      setTimeout(() => {
-        // Update learning progress
-        setLearningProgress(prev => ({
-          ...prev,
-          [entry.id]: {
-            ...prev[entry.id],
-            flashcardsGenerated: true,
-            lastStudied: new Date(),
-            completionPercentage: Math.min((prev[entry.id]?.completionPercentage || 0) + 30, 100)
-          }
-        }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-        toast({
-          title: "Flashcards Generated!",
-          description: "Your flashcards are ready for study. Progress updated!",
-        });
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Error generating flashcards",
-        description: "Please try again later.",
-        variant: "destructive",
+      const response = await fetch('/api/generate-flashcards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ entryId: entry.id }),
       });
+
+      if (!response.ok) throw new Error('Failed to generate flashcards');
+
+      const { flashcards } = await response.json();
+      const cards = flashcards[entry.id] || [];
+
+      const newCompletion = Math.min((learningProgress[entry.id]?.completionPercentage || 0) + 30, 100);
+      setLearningProgress(prev => ({
+        ...prev,
+        [entry.id]: { ...prev[entry.id], flashcardsGenerated: true, lastStudied: new Date(), completionPercentage: newCompletion }
+      }));
+      await saveLearningProgress(entry.id, { flashcardsGenerated: true, completionPercentage: newCompletion });
+
+      setFlashcardModal({ open: true, entryTitle: entry.title || 'Untitled', cards, currentIndex: 0, showAnswer: false });
+    } catch (error) {
+      toast({ title: "Error generating flashcards", description: "Please try again later.", variant: "destructive" });
     }
   };
 
   const handleCreateConceptMap = async (entry) => {
-    toast({
-      title: "Creating Concept Map",
-      description: `Mapping concepts from "${entry.title}"...`,
-    });
+    toast({ title: "Creating Concept Map", description: `Mapping concepts from "${entry.title}"...` });
 
     try {
-      // TODO: Implement concept mapping API call
-      // For now, show success message and update progress
-      setTimeout(() => {
-        // Update learning progress
-        setLearningProgress(prev => ({
-          ...prev,
-          [entry.id]: {
-            ...prev[entry.id],
-            conceptMapCreated: true,
-            lastStudied: new Date(),
-            completionPercentage: Math.min((prev[entry.id]?.completionPercentage || 0) + 25, 100)
-          }
-        }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-        toast({
-          title: "Concept Map Created!",
-          description: "Your visual concept map is ready. Progress updated!",
-        });
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Error creating concept map",
-        description: "Please try again later.",
-        variant: "destructive",
+      const response = await fetch('/api/create-concept-map', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ entryId: entry.id }),
       });
+
+      if (!response.ok) throw new Error('Failed to create concept map');
+
+      const { conceptMap } = await response.json();
+
+      const newCompletion = Math.min((learningProgress[entry.id]?.completionPercentage || 0) + 25, 100);
+      setLearningProgress(prev => ({
+        ...prev,
+        [entry.id]: { ...prev[entry.id], conceptMapCreated: true, lastStudied: new Date(), completionPercentage: newCompletion }
+      }));
+      await saveLearningProgress(entry.id, { conceptMapCreated: true, completionPercentage: newCompletion });
+
+      setConceptMapModal({ open: true, entryTitle: entry.title || 'Untitled', data: conceptMap });
+    } catch (error) {
+      toast({ title: "Error creating concept map", description: "Please try again later.", variant: "destructive" });
     }
   };
 
   const handleAskAI = async (entry) => {
-    toast({
-      title: "AI Assistant Ready",
-      description: `Ask questions about "${entry.title}"...`,
-    });
+    setAskAIModal({ open: true, entry, question: '', answer: '', isLoading: false });
+  };
+
+  const handleAskAISubmit = async () => {
+    if (!askAIModal.question.trim() || !askAIModal.entry) return;
+    setAskAIModal(prev => ({ ...prev, isLoading: true, answer: '' }));
 
     try {
-      // TODO: Implement AI Q&A modal
-      // For now, show success message and update progress
-      setTimeout(() => {
-        // Update learning progress
-        setLearningProgress(prev => ({
-          ...prev,
-          [entry.id]: {
-            ...prev[entry.id],
-            questionsAsked: (prev[entry.id]?.questionsAsked || 0) + 1,
-            lastStudied: new Date(),
-            completionPercentage: Math.min((prev[entry.id]?.completionPercentage || 0) + 10, 100)
-          }
-        }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-        toast({
-          title: "AI Assistant Activated!",
-          description: "Question logged! This feature will be fully implemented soon.",
-        });
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Error activating AI assistant",
-        description: "Please try again later.",
-        variant: "destructive",
+      const response = await fetch('/api/ask-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ entryId: askAIModal.entry.id, question: askAIModal.question }),
       });
+
+      if (!response.ok) throw new Error('Failed to get answer');
+
+      const { answer } = await response.json();
+
+      const newQuestions = (learningProgress[askAIModal.entry.id]?.questionsAsked || 0) + 1;
+      const newCompletion = Math.min((learningProgress[askAIModal.entry.id]?.completionPercentage || 0) + 10, 100);
+      setLearningProgress(prev => ({
+        ...prev,
+        [askAIModal.entry.id]: { ...prev[askAIModal.entry.id], questionsAsked: newQuestions, lastStudied: new Date(), completionPercentage: newCompletion }
+      }));
+      await saveLearningProgress(askAIModal.entry.id, { questionsAsked: newQuestions, completionPercentage: newCompletion });
+
+      setAskAIModal(prev => ({ ...prev, answer, isLoading: false }));
+    } catch (error) {
+      setAskAIModal(prev => ({ ...prev, isLoading: false }));
+      toast({ title: "Error getting answer", description: "Please try again later.", variant: "destructive" });
     }
   };
 
   const handleTrackProgress = async (entry) => {
-    toast({
-      title: "Learning Progress",
-      description: `Tracking your progress with "${entry.title}"...`,
-    });
-
     try {
-      // TODO: Implement progress tracking
-      // For now, show success message
-      setTimeout(() => {
-        toast({
-          title: "Progress Tracked!",
-          description: "Your learning progress has been updated. This feature will be fully implemented soon.",
-        });
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Error tracking progress",
-        description: "Please try again later.",
-        variant: "destructive",
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const current = learningProgress[entry.id];
+      await fetch('/api/learning-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          entryId: entry.id,
+          flashcardsGenerated: current?.flashcardsGenerated || false,
+          conceptMapCreated: current?.conceptMapCreated || false,
+          questionsAsked: current?.questionsAsked || 0,
+          completionPercentage: current?.completionPercentage || 0,
+        }),
       });
+
+      toast({ title: "Progress Saved!", description: "Your learning progress has been saved." });
+    } catch (error) {
+      toast({ title: "Error saving progress", description: "Please try again later.", variant: "destructive" });
     }
   };
 
@@ -1526,15 +1549,40 @@ export default function KnowledgeBase() {
     });
 
     try {
-      // TODO: Implement bulk flashcard generation
-      setTimeout(() => {
-        toast({
-          title: "Bulk Flashcards Generated!",
-          description: `Flashcards created for ${selectedEntries.length} entries. This feature will be fully implemented soon.`,
-        });
-        setSelectedEntries([]);
-        setIsBulkMode(false);
-      }, 2000);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/generate-flashcards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ bulk: true, entryIds: selectedEntries }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate flashcards');
+
+      const { flashcards } = await response.json();
+      const allCards = Object.values(flashcards).flat() as { question: string; answer: string }[];
+
+      // Update progress for all selected entries
+      setLearningProgress(prev => {
+        const updated = { ...prev };
+        for (const id of selectedEntries) {
+          updated[id] = { ...updated[id], flashcardsGenerated: true, lastStudied: new Date(), completionPercentage: Math.min((updated[id]?.completionPercentage || 0) + 30, 100) };
+        }
+        return updated;
+      });
+
+      toast({
+        title: "Bulk Flashcards Generated!",
+        description: `${allCards.length} flashcards created for ${selectedEntries.length} entries.`,
+      });
+
+      if (allCards.length > 0) {
+        setFlashcardModal({ open: true, entryTitle: `${selectedEntries.length} entries`, cards: allCards, currentIndex: 0, showAnswer: false });
+      }
+
+      setSelectedEntries([]);
+      setIsBulkMode(false);
     } catch (error) {
       console.error('Error generating flashcards:', error);
       toast({
@@ -1589,6 +1637,119 @@ export default function KnowledgeBase() {
           </AnimatedWrapper>
         )}
       </div>
+
+      {/* Flashcard Modal */}
+      <Dialog open={flashcardModal.open} onOpenChange={(open) => setFlashcardModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Flashcards — {flashcardModal.entryTitle}</DialogTitle>
+            <DialogDescription>
+              Card {flashcardModal.currentIndex + 1} of {flashcardModal.cards.length}
+            </DialogDescription>
+          </DialogHeader>
+          {flashcardModal.cards.length > 0 && (
+            <div className="space-y-4">
+              <div
+                className="min-h-[120px] p-4 rounded-lg border-2 border-blue-200 bg-blue-50 cursor-pointer select-none"
+                onClick={() => setFlashcardModal(prev => ({ ...prev, showAnswer: !prev.showAnswer }))}
+              >
+                <p className="text-sm text-blue-600 font-medium mb-2">
+                  {flashcardModal.showAnswer ? 'Answer' : 'Question (click to reveal answer)'}
+                </p>
+                <p className="text-gray-800">
+                  {flashcardModal.showAnswer
+                    ? flashcardModal.cards[flashcardModal.currentIndex]?.answer
+                    : flashcardModal.cards[flashcardModal.currentIndex]?.question}
+                </p>
+              </div>
+              <div className="flex justify-between">
+                <Button
+                  variant="outline"
+                  disabled={flashcardModal.currentIndex === 0}
+                  onClick={() => setFlashcardModal(prev => ({ ...prev, currentIndex: prev.currentIndex - 1, showAnswer: false }))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={flashcardModal.currentIndex === flashcardModal.cards.length - 1}
+                  onClick={() => setFlashcardModal(prev => ({ ...prev, currentIndex: prev.currentIndex + 1, showAnswer: false }))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Concept Map Modal */}
+      <Dialog open={conceptMapModal.open} onOpenChange={(open) => setConceptMapModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Concept Map — {conceptMapModal.entryTitle}</DialogTitle>
+            <DialogDescription>Central concept: {conceptMapModal.data?.centralConcept}</DialogDescription>
+          </DialogHeader>
+          {conceptMapModal.data && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-2">Concepts ({conceptMapModal.data.nodes.length})</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {conceptMapModal.data.nodes.map(node => (
+                    <div key={node.id} className="p-2 rounded border bg-purple-50 border-purple-200">
+                      <p className="font-medium text-sm text-purple-800">{node.label}</p>
+                      <p className="text-xs text-gray-600 mt-1">{node.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-2">Relationships ({conceptMapModal.data.edges.length})</p>
+                <div className="space-y-1">
+                  {conceptMapModal.data.edges.map((edge, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                      <span className="font-medium">{edge.from}</span>
+                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{edge.label}</span>
+                      <span className="font-medium">{edge.to}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Ask AI Modal */}
+      <Dialog open={askAIModal.open} onOpenChange={(open) => setAskAIModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ask AI — {askAIModal.entry?.title}</DialogTitle>
+            <DialogDescription>Ask any question about this knowledge base entry.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Type your question..."
+                value={askAIModal.question}
+                onChange={(e) => setAskAIModal(prev => ({ ...prev, question: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && handleAskAISubmit()}
+                disabled={askAIModal.isLoading}
+              />
+              <Button onClick={handleAskAISubmit} disabled={askAIModal.isLoading || !askAIModal.question.trim()}>
+                {askAIModal.isLoading ? 'Thinking...' : 'Ask'}
+              </Button>
+            </div>
+            {askAIModal.answer && (
+              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                <p className="text-sm font-medium text-green-700 mb-1">Answer</p>
+                <p className="text-gray-800 text-sm whitespace-pre-wrap">{askAIModal.answer}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </AppLayout>
   );
 }

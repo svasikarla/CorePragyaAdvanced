@@ -1,18 +1,34 @@
-import { createClient } from '@supabase/supabase-js';
-import LRUCache from 'lru-cache';
+// In-memory cache for rate limiting (Edge Runtime compatible — no lru-cache)
+// Simple Map with TTL and max-size eviction
+const rateLimitCache = new Map<string, { timestamps: number[]; expiry: number }>();
+const CACHE_MAX = 5000;
+const CACHE_TTL = 60 * 1000;
 
-// Create a Supabase client for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function cacheGet(key: string): number[] | undefined {
+  const entry = rateLimitCache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiry) { rateLimitCache.delete(key); return undefined; }
+  return entry.timestamps;
+}
 
-// In-memory cache for rate limiting
-// This helps reduce database calls and provides faster rate limiting
-const rateLimitCache = new LRUCache<string, number[]>({
-  max: 5000, // Maximum number of users to track
-  ttl: 60 * 1000, // Cache TTL: 1 minute
-});
+function cacheSet(key: string, timestamps: number[]) {
+  if (rateLimitCache.size >= CACHE_MAX) {
+    // Evict oldest entry
+    const firstKey = rateLimitCache.keys().next().value;
+    if (firstKey) rateLimitCache.delete(firstKey);
+  }
+  rateLimitCache.set(key, { timestamps, expiry: Date.now() + CACHE_TTL });
+}
+
+// Supabase admin client — only used in Node.js API routes (not edge middleware)
+// Lazy import to avoid Edge Runtime issues
+function getSupabaseAdmin() {
+  const { createClient } = require('@supabase/supabase-js');
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // Cost factors for different AI models
 const MODEL_COST_FACTORS: Record<string, { input: number; output: number }> = {
@@ -66,7 +82,7 @@ export function createRateLimiter(userId: string, endpoint: string): {
   const cacheKey = `${userId}:${endpoint}`;
 
   // Get current requests from cache or initialize new array
-  let requests = rateLimitCache.get(cacheKey) || [];
+  let requests = cacheGet(cacheKey) || [];
 
   // Filter out requests outside the current window
   requests = requests.filter((timestamp: number) => now - timestamp < windowMs);
@@ -85,7 +101,7 @@ export function createRateLimiter(userId: string, endpoint: string): {
   // If not limited, add the current request to the cache
   if (!isLimited) {
     requests.push(now);
-    rateLimitCache.set(cacheKey, requests);
+    cacheSet(cacheKey, requests);
   }
 
   return {
@@ -117,7 +133,7 @@ export async function recordTokenUsage(
     const cost = (inputTokens * costFactor.input) + (outputTokens * costFactor.output);
 
     // Record usage in the database
-    await supabaseAdmin
+    await getSupabaseAdmin()
       .from('api_usage')
       .insert({
         user_id: userId,
@@ -139,7 +155,7 @@ export async function recordTokenUsage(
 export async function checkUserQuota(userId: string): Promise<boolean> {
   try {
     // Call the database function to check quota
-    const { data, error } = await supabaseAdmin.rpc('check_daily_quota', {
+    const { data, error } = await getSupabaseAdmin().rpc('check_daily_quota', {
       user_uuid: userId
     });
 
@@ -168,7 +184,7 @@ export async function getUserUsageStats(userId: string): Promise<{
 }> {
   try {
     // Get daily usage
-    const { data: dailyData } = await supabaseAdmin
+    const { data: dailyData } = await getSupabaseAdmin()
       .from('daily_api_usage')
       .select('request_count')
       .eq('user_id', userId)
@@ -176,7 +192,7 @@ export async function getUserUsageStats(userId: string): Promise<{
       .single();
 
     // Get monthly usage
-    const { data: monthlyData } = await supabaseAdmin
+    const { data: monthlyData } = await getSupabaseAdmin()
       .from('monthly_api_usage')
       .select('request_count')
       .eq('user_id', userId)
@@ -184,7 +200,7 @@ export async function getUserUsageStats(userId: string): Promise<{
       .single();
 
     // Get user's quota limits
-    const { data: quotaData } = await supabaseAdmin
+    const { data: quotaData } = await getSupabaseAdmin()
       .from('api_quotas')
       .select('daily_limit, monthly_limit')
       .eq('user_id', userId)
