@@ -134,28 +134,15 @@ export async function POST(request: Request) {
 
       const aiResponse = await llmProvider.createCompletion({
         model: modelName,
-        system: `You are an AI assistant that extracts, categorizes, and summarizes content from web pages.
-        Extract the main content from the text, ignoring navigation, ads, footers, etc.
-        Then provide a concise summary of the content and categorize it into one of the following categories:
-        - Science
-        - Technology
-        - Artificial Intelligence
-        - Business
-        - Health
-        - Education
-        - Politics
-        - Environment
-        - Arts
-        - Sports
-        - Other
+        system: `You are an AI assistant that categorizes and summarizes content from web pages.
+        Analyze the text, ignoring navigation, ads, footers, etc.
+        Provide a concise summary and categorize it into one of these categories:
+        Science, Technology, Artificial Intelligence, Business, Health, Education, Politics, Environment, Arts, Sports, Other
 
-        Choose the most appropriate category based on the content.
+        IMPORTANT: Respond with ONLY a valid JSON object. No markdown, no code blocks, no extra text.
+        Do NOT include the original text in your response.
 
-        IMPORTANT: You must respond with ONLY a valid JSON object. Do not include any markdown formatting, code blocks, or explanatory text.
-
-        Return a JSON object with exactly this structure:
         {
-          "raw_text": "A cleaned version of the main textual content (max 1000 words)",
           "summary_text": "A concise summary of the content (max 250 words)",
           "summary_json": {
             "key_points": ["point 1", "point 2", "point 3"],
@@ -199,8 +186,11 @@ export async function POST(request: Request) {
 
         aiContent = JSON.parse(contentToParse);
 
+        // Set raw_text from the extracted content (not from LLM output)
+        aiContent.raw_text = truncatedText;
+
         // Validate the AI response structure
-        if (!aiContent.raw_text || !aiContent.summary_text || !aiContent.summary_json || !aiContent.category) {
+        if (!aiContent.summary_text || !aiContent.summary_json || !aiContent.category) {
           console.error('Invalid AI content structure:', aiContent);
           return NextResponse.json({ error: 'AI returned invalid content structure' }, { status: 500 });
         }

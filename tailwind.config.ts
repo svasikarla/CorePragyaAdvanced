@@ -95,10 +95,25 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "count-up": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(99, 102, 241, 0.15)" },
+          "50%": { boxShadow: "0 0 20px 4px rgba(99, 102, 241, 0.1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "shimmer": "shimmer 1.8s ease-in-out infinite",
+        "count-up": "count-up 0.6s ease-out forwards",
+        "pulse-glow": "pulse-glow 3s ease-in-out infinite",
       },
       fontFamily: {
         sans: ["var(--font-inter)"],

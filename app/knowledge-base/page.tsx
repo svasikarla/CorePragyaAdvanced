@@ -617,6 +617,7 @@ export default function KnowledgeBase() {
   const [rawText, setRawText] = useState("")
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [isAddPdfOpen, setIsAddPdfOpen] = useState(false)
+  const [isAddUrlOpen, setIsAddUrlOpen] = useState(false)
 
   // Bulk selection state
   const [selectedEntries, setSelectedEntries] = useState<string[]>([])
@@ -849,6 +850,7 @@ export default function KnowledgeBase() {
         title: "URL added to Knowledge Base",
         description: "The content has been successfully summarized and added to your knowledge base.",
       });
+      setIsAddUrlOpen(false); // Close dialog on success
     } catch (error) {
       console.error('Error adding URL:', error);
       toast({
@@ -1038,7 +1040,7 @@ export default function KnowledgeBase() {
 
   if (loading) {
     return (
-      <AppLayout>
+      <AppLayout user={user}>
         <LoadingStates type="skeleton" />
       </AppLayout>
     )
@@ -1145,7 +1147,7 @@ export default function KnowledgeBase() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => document.getElementById('url-input-dialog')?.click()}>
+                <DropdownMenuItem onClick={() => setIsAddUrlOpen(true)}>
                   <Globe className="mr-2 h-4 w-4 text-indigo-500" />
                   <span>Add from URL</span>
                 </DropdownMenuItem>
@@ -1166,10 +1168,8 @@ export default function KnowledgeBase() {
             but for now reusing the existing logic by focusing an input is tricky without the card.
             Let's add a Dialog for URL input instead.
         */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <button id="url-input-dialog" className="hidden">Open URL Dialog</button>
-          </DialogTrigger>
+        {/* URL Input Dialog - Controlled */}
+        <Dialog open={isAddUrlOpen} onOpenChange={setIsAddUrlOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Web Content</DialogTitle>
@@ -1177,10 +1177,7 @@ export default function KnowledgeBase() {
                 Paste a URL to summarize and save to your knowledge base.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => {
-              handleAddUrl(e);
-              // Close dialog logic would go here, but we'll rely on the loading state for now
-            }} className="space-y-4 pt-4">
+            <form onSubmit={handleAddUrl} className="space-y-4 pt-4">
               <Input
                 type="url"
                 placeholder="https://example.com/article"
@@ -1257,8 +1254,8 @@ export default function KnowledgeBase() {
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
                 className={`rounded-full text-xs h-8 ${selectedCategory === category
-                    ? 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200'
-                    : 'text-gray-600 border-gray-200 hover:bg-gray-50'
+                  ? 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200'
+                  : 'text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
               >
                 {category}
@@ -1549,7 +1546,7 @@ export default function KnowledgeBase() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout user={user}>
       <div className="container py-6 px-4 sm:px-6">
         <ActionToolbar />
 

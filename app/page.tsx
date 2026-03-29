@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import {
   ArrowRight, Brain, Search, MessageSquare, Mail, FileText,
   Globe, Sparkles, TrendingUp, Zap, BookOpen, Database,
-  Check, ChevronRight, Star, Shield, Clock, Users
+  Check, ChevronRight, Star, Shield, Clock, Users,
+  Newspaper, Rss, BarChart3, Flame
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -125,7 +126,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section - Optimized spacing */}
+        {/* Hero Section */}
         <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
           <div className="container relative py-16 md:py-20 lg:py-24">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -134,7 +135,7 @@ export default function LandingPage() {
                 <AnimatedSection delay={0}>
                   <Badge variant="outline" className="text-indigo-700 border-indigo-300 hover:bg-indigo-50 transition-colors">
                     <Sparkles className="h-3 w-3 mr-1" />
-                    AI-Powered Knowledge Management
+                    AI-Powered Knowledge Intelligence
                   </Badge>
                 </AnimatedSection>
 
@@ -145,8 +146,7 @@ export default function LandingPage() {
                       <span className="block text-indigo-700 mt-1">AI Knowledge Assistant</span>
                     </h1>
                     <p className="max-w-[600px] text-base text-muted-foreground md:text-lg">
-                      Transform web articles, emails, and PDFs into an intelligent, searchable knowledge base.
-                      Ask questions and get instant answers powered by advanced RAG technology.
+                      Transform articles, emails, and PDFs into an intelligent knowledge base. Get AI-curated trending news, deep insights, and instant answers — all personalized to your interests.
                     </p>
                   </div>
                 </AnimatedSection>
@@ -155,16 +155,16 @@ export default function LandingPage() {
                 <AnimatedSection delay={200}>
                   <div className="grid grid-cols-3 gap-4 w-full max-w-md py-4">
                     <div className="text-center">
-                      <div className="text-xl font-bold text-indigo-700">AI-Powered</div>
-                      <div className="text-xs text-muted-foreground">Semantic Search</div>
+                      <div className="text-xl font-bold text-indigo-700">AI-Curated</div>
+                      <div className="text-xs text-muted-foreground">Trending Feed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xl font-bold text-indigo-700">Multi-Source</div>
-                      <div className="text-xs text-muted-foreground">Content Import</div>
+                      <div className="text-xl font-bold text-indigo-700">Deep</div>
+                      <div className="text-xs text-muted-foreground">AI Insights</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xl font-bold text-indigo-700">Instant</div>
-                      <div className="text-xs text-muted-foreground">AI Answers</div>
+                      <div className="text-xl font-bold text-indigo-700">Multi-Model</div>
+                      <div className="text-xs text-muted-foreground">Intelligence</div>
                     </div>
                   </div>
                 </AnimatedSection>
@@ -211,12 +211,12 @@ export default function LandingPage() {
                   <div className="absolute -bottom-4 -left-4 hidden lg:block animate-float">
                     <Card className="bg-white shadow-xl hover:shadow-2xl transition-shadow">
                       <CardContent className="p-3 flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <Check className="h-4 w-4 text-green-700" />
+                        <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
+                          <Flame className="h-4 w-4 text-orange-600" />
                         </div>
                         <div>
-                          <div className="font-semibold text-xs">AI Summarized</div>
-                          <div className="text-[10px] text-muted-foreground">In seconds</div>
+                          <div className="font-semibold text-xs">Trending Feed</div>
+                          <div className="text-[10px] text-muted-foreground">AI-curated for you</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -226,11 +226,11 @@ export default function LandingPage() {
                     <Card className="bg-white shadow-xl hover:shadow-2xl transition-shadow">
                       <CardContent className="p-3 flex items-center gap-2">
                         <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                          <MessageSquare className="h-4 w-4 text-indigo-700" />
+                          <Sparkles className="h-4 w-4 text-indigo-700" />
                         </div>
                         <div>
-                          <div className="font-semibold text-xs">Ask Anything</div>
-                          <div className="text-[10px] text-muted-foreground">Instant answers</div>
+                          <div className="font-semibold text-xs">Deep Insights</div>
+                          <div className="text-[10px] text-muted-foreground">AI-powered analysis</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -241,7 +241,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Core Features Section - Optimized spacing */}
+        {/* Core Features Section */}
         <section id="features" className="py-16 md:py-20 bg-white">
           <div className="container">
             <AnimatedSection>
@@ -251,61 +251,80 @@ export default function LandingPage() {
                   Everything You Need to Master Your Knowledge
                 </h2>
                 <p className="mx-auto max-w-[700px] text-base text-muted-foreground">
-                  Built with cutting-edge AI technology to help you organize, search, and interact with your personal knowledge base.
+                  Built with cutting-edge AI technology to help you organize, discover, and stay ahead in your areas of interest.
                 </p>
               </div>
             </AnimatedSection>
 
             {/* Primary Features */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-10">
-              {/* RAG Chatbot */}
+              {/* Trending News Feed - NEW */}
               <AnimatedSection delay={0}>
-                <Card className="border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                <Card className="border-2 border-orange-100 hover:border-orange-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
                   <CardContent className="p-5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 mb-3 group-hover:scale-110 transition-transform">
-                      <MessageSquare className="h-6 w-6 text-indigo-700" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 mb-3 group-hover:scale-110 transition-transform">
+                      <Newspaper className="h-6 w-6 text-orange-700" />
                     </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">AI-Powered Q&A Chatbot</h3>
+                    <h3 className="font-playfair text-lg font-bold mb-2">AI-Curated Trending Feed</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Ask natural language questions and get instant, contextual answers from your knowledge base using advanced RAG (Retrieval Augmented Generation) technology.
+                      Stay informed with a personalized news feed. AI scores and ranks articles from your RSS subscriptions based on your unique interest profile.
                     </p>
                     <Badge variant="secondary" className="text-xs">
-                      <Star className="h-3 w-3 mr-1" />
-                      Most Popular Feature
+                      <Flame className="h-3 w-3 mr-1" />
+                      Personalized for You
                     </Badge>
                   </CardContent>
                 </Card>
               </AnimatedSection>
 
-              {/* Smart Summarization */}
+              {/* Deep AI Insights - NEW */}
               <AnimatedSection delay={100}>
+                <Card className="border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                  <CardContent className="p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 mb-3 group-hover:scale-110 transition-transform">
+                      <Sparkles className="h-6 w-6 text-indigo-700" />
+                    </div>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Deep AI Insights</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Get actionable recommendations, detect macro themes across your knowledge, and uncover connections you might have missed — all powered by advanced AI analysis.
+                    </p>
+                    <Badge variant="secondary" className="text-xs">
+                      <Star className="h-3 w-3 mr-1" />
+                      Powered by Multi-Model AI
+                    </Badge>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+
+              {/* RSS Intelligence - NEW */}
+              <AnimatedSection delay={200}>
                 <Card className="border-2 hover:border-indigo-200 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
                   <CardContent className="p-5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 mb-3 group-hover:scale-110 transition-transform">
-                      <Sparkles className="h-6 w-6 text-purple-700" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mb-3 group-hover:scale-110 transition-transform">
+                      <Rss className="h-6 w-6 text-emerald-700" />
                     </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">Intelligent Summarization</h3>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Smart RSS Intelligence</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Automatically extract key points, main ideas, and actionable insights from any content using Claude AI. Save hours of reading time.
+                      AI suggests RSS feeds based on your interests. Automatic ingestion scores every article for relevance, so you only see what matters.
                     </p>
                     <div className="flex gap-2">
-                      <Badge variant="outline" className="text-xs">Key Points</Badge>
-                      <Badge variant="outline" className="text-xs">Auto-Categorized</Badge>
+                      <Badge variant="outline" className="text-xs">AI-Suggested</Badge>
+                      <Badge variant="outline" className="text-xs">Auto-Scored</Badge>
                     </div>
                   </CardContent>
                 </Card>
               </AnimatedSection>
 
-              {/* Vector Search */}
-              <AnimatedSection delay={200}>
+              {/* RAG Chatbot */}
+              <AnimatedSection delay={0}>
                 <Card className="border-2 hover:border-indigo-200 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
                   <CardContent className="p-5">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 mb-3 group-hover:scale-110 transition-transform">
-                      <Search className="h-6 w-6 text-blue-700" />
+                      <MessageSquare className="h-6 w-6 text-blue-700" />
                     </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">Semantic Search</h3>
+                    <h3 className="font-playfair text-lg font-bold mb-2">AI-Powered Q&A Chatbot</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Find exactly what you need with AI-powered semantic search. Goes beyond keywords to understand meaning and context.
+                      Ask natural language questions and get instant, contextual answers from your knowledge base using advanced RAG technology.
                     </p>
                     <Badge variant="outline" className="text-xs">
                       <Database className="h-3 w-3 mr-1" />
@@ -316,7 +335,7 @@ export default function LandingPage() {
               </AnimatedSection>
 
               {/* Multi-source Import */}
-              <AnimatedSection delay={0}>
+              <AnimatedSection delay={100}>
                 <Card className="border-2 hover:border-indigo-200 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
                   <CardContent className="p-5">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-3 group-hover:scale-110 transition-transform">
@@ -324,7 +343,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="font-playfair text-lg font-bold mb-2">Multi-Source Import</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Add content from anywhere: paste URLs, import from Gmail, or upload PDF documents. All processed automatically.
+                      Add content from anywhere: paste URLs, import from Gmail, upload PDFs, or subscribe to RSS feeds. All processed and summarized automatically.
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs">
@@ -339,42 +358,27 @@ export default function LandingPage() {
                         <FileText className="h-3 w-3 mr-1" />
                         PDFs
                       </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        <Rss className="h-3 w-3 mr-1" />
+                        RSS
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
               </AnimatedSection>
 
-              {/* Gmail Integration */}
-              <AnimatedSection delay={100}>
-                <Card className="border-2 hover:border-indigo-200 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
-                  <CardContent className="p-5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 mb-3 group-hover:scale-110 transition-transform">
-                      <Mail className="h-6 w-6 text-orange-700" />
-                    </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">Gmail Integration</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Automatically extract and process URLs from your Gmail. Never lose valuable links shared in emails again.
-                    </p>
-                    <Badge variant="secondary" className="text-xs">
-                      <Zap className="h-3 w-3 mr-1" />
-                      Automated Workflow
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-
-              {/* Analytics Dashboard */}
+              {/* Analytics & Interest Profiling */}
               <AnimatedSection delay={200}>
                 <Card className="border-2 hover:border-indigo-200 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
                   <CardContent className="p-5">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-pink-100 mb-3 group-hover:scale-110 transition-transform">
-                      <TrendingUp className="h-6 w-6 text-pink-700" />
+                      <BarChart3 className="h-6 w-6 text-pink-700" />
                     </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">Learning Analytics</h3>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Interest Profiling & Analytics</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Track your knowledge growth with visualizations, category insights, and AI-generated recommendations.
+                      AI builds your interest profile automatically. Track knowledge growth, spot trends, and see how your expertise evolves over time.
                     </p>
-                    <Badge variant="outline" className="text-xs">Visual Charts</Badge>
+                    <Badge variant="outline" className="text-xs">Visual Charts & Themes</Badge>
                   </CardContent>
                 </Card>
               </AnimatedSection>
@@ -387,10 +391,10 @@ export default function LandingPage() {
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center group">
                     <div className="flex justify-center mb-3">
-                      <Brain className="h-8 w-8 text-indigo-700 group-hover:scale-110 transition-transform" />
+                      <Flame className="h-8 w-8 text-indigo-700 group-hover:scale-110 transition-transform" />
                     </div>
-                    <h4 className="font-semibold mb-2">Advanced AI Models</h4>
-                    <p className="text-sm text-muted-foreground">Powered by Claude 3.5 Sonnet and Cohere embeddings for superior accuracy</p>
+                    <h4 className="font-semibold mb-2">Proactive Intelligence</h4>
+                    <p className="text-sm text-muted-foreground">AI-curated news feed and deep insights keep you ahead — not just organized</p>
                   </div>
                   <div className="text-center group">
                     <div className="flex justify-center mb-3">
@@ -401,10 +405,10 @@ export default function LandingPage() {
                   </div>
                   <div className="text-center group">
                     <div className="flex justify-center mb-3">
-                      <Clock className="h-8 w-8 text-indigo-700 group-hover:scale-110 transition-transform" />
+                      <Brain className="h-8 w-8 text-indigo-700 group-hover:scale-110 transition-transform" />
                     </div>
-                    <h4 className="font-semibold mb-2">Save Hours Daily</h4>
-                    <p className="text-sm text-muted-foreground">Instant summaries and answers instead of reading entire articles</p>
+                    <h4 className="font-semibold mb-2">Multi-Model AI</h4>
+                    <p className="text-sm text-muted-foreground">Powered by Claude, GPT, Groq, and Cohere — the best model for every task</p>
                   </div>
                 </div>
               </div>
@@ -412,17 +416,17 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How It Works Section - Optimized spacing */}
+        {/* How It Works Section */}
         <section id="how-it-works" className="py-16 md:py-20 bg-slate-50">
           <div className="container">
             <AnimatedSection>
               <div className="mb-12 text-center">
                 <Badge variant="outline" className="mb-3">Simple Process</Badge>
                 <h2 className="font-playfair text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl mb-3">
-                  From Content to Knowledge in Minutes
+                  From Content to Intelligence in Minutes
                 </h2>
                 <p className="mx-auto max-w-[700px] text-base text-muted-foreground">
-                  Our streamlined workflow makes it easy to build and query your personal knowledge base.
+                  Build your knowledge base, and let AI keep you informed with curated content and deep insights.
                 </p>
               </div>
             </AnimatedSection>
@@ -439,12 +443,13 @@ export default function LandingPage() {
                     </div>
                     <h3 className="font-playfair text-lg font-bold mb-2">Add Content</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Paste a URL, connect Gmail, or upload a PDF. Multiple sources supported.
+                      Paste a URL, connect Gmail, upload a PDF, or subscribe to RSS feeds. Multiple sources supported.
                     </p>
                     <div className="flex gap-2">
                       <Globe className="h-5 w-5 text-indigo-600" />
                       <Mail className="h-5 w-5 text-indigo-600" />
                       <FileText className="h-5 w-5 text-indigo-600" />
+                      <Rss className="h-5 w-5 text-indigo-600" />
                     </div>
                   </div>
                 </AnimatedSection>
@@ -457,11 +462,11 @@ export default function LandingPage() {
                         2
                       </div>
                     </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">AI Processing</h3>
+                    <h3 className="font-playfair text-lg font-bold mb-2">AI Processes & Profiles</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Our AI extracts key information, generates summaries, and creates searchable embeddings.
+                      AI extracts key information, generates summaries, builds your interest profile, and creates searchable embeddings.
                     </p>
-                    <Badge variant="outline" className="text-xs">Auto-Summarized</Badge>
+                    <Badge variant="outline" className="text-xs">Auto-Profiled</Badge>
                   </div>
                 </AnimatedSection>
 
@@ -473,11 +478,14 @@ export default function LandingPage() {
                         3
                       </div>
                     </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">Ask Questions</h3>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Ask & Discover</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Chat with your knowledge base using natural language. Get instant, accurate answers.
+                      Chat with your knowledge base, browse your AI-curated trending feed, and explore deep insights.
                     </p>
-                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                    <div className="flex gap-2">
+                      <MessageSquare className="h-5 w-5 text-blue-600" />
+                      <Newspaper className="h-5 w-5 text-blue-600" />
+                    </div>
                   </div>
                 </AnimatedSection>
 
@@ -489,11 +497,14 @@ export default function LandingPage() {
                         4
                       </div>
                     </div>
-                    <h3 className="font-playfair text-lg font-bold mb-2">Track Progress</h3>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Stay Ahead</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      View analytics, insights, and watch your knowledge base grow over time.
+                      AI continuously scores new articles, detects emerging themes, and keeps your feed fresh — automatically.
                     </p>
-                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <div className="flex gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      <Flame className="h-5 w-5 text-green-600" />
+                    </div>
                   </div>
                 </AnimatedSection>
               </div>
@@ -521,7 +532,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Use Cases Section - Optimized spacing */}
+        {/* Use Cases Section */}
         <section id="use-cases" className="py-16 md:py-20 bg-white">
           <div className="container">
             <AnimatedSection>
@@ -543,12 +554,12 @@ export default function LandingPage() {
                     </div>
                     <h3 className="font-bold text-lg mb-2">Students & Researchers</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Organize research papers, lecture notes, and articles. Quickly find information for essays and projects.
+                      Organize research papers, lecture notes, and articles. AI detects themes across your materials and keeps you updated on new developments.
                     </p>
                     <ul className="space-y-2 text-sm">
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Save research materials from multiple sources</span>
+                        <span>Save research from multiple sources + RSS</span>
                       </li>
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
@@ -556,7 +567,7 @@ export default function LandingPage() {
                       </li>
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Track learning progress by category</span>
+                        <span>AI-detected themes and interest profiling</span>
                       </li>
                     </ul>
                   </CardContent>
@@ -572,20 +583,20 @@ export default function LandingPage() {
                     </div>
                     <h3 className="font-bold text-lg mb-2">Professionals</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Stay on top of industry news, documentation, and best practices. Build your expertise systematically.
+                      Stay on top of industry news with AI-curated trending feeds. Build expertise systematically while AI surfaces what matters most.
                     </p>
                     <ul className="space-y-2 text-sm">
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Import articles from email newsletters</span>
+                        <span>AI-curated news feed tailored to your role</span>
                       </li>
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Quick reference for work projects</span>
+                        <span>Deep insights with actionable recommendations</span>
                       </li>
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Share knowledge with team members</span>
+                        <span>Smart RSS subscriptions suggested by AI</span>
                       </li>
                     </ul>
                   </CardContent>
@@ -601,20 +612,20 @@ export default function LandingPage() {
                     </div>
                     <h3 className="font-bold text-lg mb-2">Lifelong Learners</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Build a second brain for personal growth. Never forget what you've learned.
+                      Build a second brain for personal growth. AI automatically discovers content aligned with your evolving interests.
                     </p>
                     <ul className="space-y-2 text-sm">
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Curate content from across the web</span>
+                        <span>Curate content from web, email, and RSS</span>
                       </li>
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>AI helps connect related ideas</span>
+                        <span>AI connects related ideas across your KB</span>
                       </li>
                       <li className="flex items-start">
                         <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Visualize your learning journey</span>
+                        <span>Trending feed keeps learning momentum alive</span>
                       </li>
                     </ul>
                   </CardContent>
@@ -639,7 +650,7 @@ export default function LandingPage() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   {[
-                    { icon: Brain, name: "Claude 3.5", desc: "AI Reasoning", color: "text-indigo-700" },
+                    { icon: Brain, name: "Multi-Model AI", desc: "Claude, GPT, Groq", color: "text-indigo-700" },
                     { icon: Database, name: "Vector DB", desc: "Semantic Search", color: "text-purple-700" },
                     { icon: Sparkles, name: "Cohere", desc: "Embeddings", color: "text-blue-700" },
                     { icon: Shield, name: "Supabase", desc: "Secure Storage", color: "text-green-700" }
@@ -660,7 +671,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Final CTA Section - Optimized */}
+        {/* Final CTA Section */}
         <section className="bg-gradient-to-br from-indigo-700 via-purple-700 to-indigo-800 py-16 md:py-20 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-grid-white/10"></div>
           <AnimatedSection>
@@ -669,7 +680,7 @@ export default function LandingPage() {
                 Start Building Your Knowledge Base Today
               </h2>
               <p className="mx-auto max-w-[700px] text-base text-indigo-100 mb-6">
-                Join researchers, professionals, and learners who are transforming how they organize and access knowledge.
+                Join researchers, professionals, and learners who are transforming how they organize, discover, and stay ahead with AI-powered knowledge intelligence.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-6">
@@ -704,7 +715,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer - Compact */}
+      {/* Footer */}
       <footer className="border-t bg-slate-50 py-8">
         <div className="container">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
@@ -714,7 +725,7 @@ export default function LandingPage() {
                 <span className="inline-block font-playfair text-lg font-bold">CorePragya</span>
               </Link>
               <p className="text-center text-xs text-muted-foreground md:text-left max-w-sm">
-                AI-powered knowledge management for the modern learner. Transform information into insight.
+                AI-powered knowledge intelligence for the modern learner. Transform information into insight, and stay ahead with curated content.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 text-sm">

@@ -70,11 +70,14 @@ export default function CategoryHeatmap({ entries }: CategoryHeatmapProps) {
   // If no data, show a placeholder
   if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground text-center">
-          No activity data available yet.<br />
-          Add more knowledge entries to see category activity.
-        </p>
+      <div className="flex flex-col items-center justify-center h-full text-center px-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 mb-3">
+          <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+        </div>
+        <p className="text-sm font-medium text-slate-600">No activity yet</p>
+        <p className="text-xs text-slate-400 mt-1 max-w-[200px]">Add entries across different categories to see your activity patterns.</p>
       </div>
     )
   }

@@ -213,9 +213,9 @@ export const PROVIDER_MODEL_MAPPINGS = {
     'claude-3-opus': 'gpt-4',
   },
   groq: {
-    'claude-3-5-sonnet': 'llama3-70b-8192',
-    'claude-3-haiku': 'llama3-8b-8192',
-    'claude-3-opus': 'llama3-70b-8192',
+    'claude-3-5-sonnet': 'llama-3.3-70b-versatile',
+    'claude-3-haiku': 'llama-3.1-8b-instant',
+    'claude-3-opus': 'llama-3.3-70b-versatile',
   },
 };
 
