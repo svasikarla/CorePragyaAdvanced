@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
+
 // In-memory cache for rate limiting (Edge Runtime compatible — no lru-cache)
 // Simple Map with TTL and max-size eviction
 const rateLimitCache = new Map<string, { timestamps: number[]; expiry: number }>();
@@ -13,21 +15,19 @@ function cacheGet(key: string): number[] | undefined {
 
 function cacheSet(key: string, timestamps: number[]) {
   if (rateLimitCache.size >= CACHE_MAX) {
-    // Evict oldest entry
     const firstKey = rateLimitCache.keys().next().value;
     if (firstKey) rateLimitCache.delete(firstKey);
   }
   rateLimitCache.set(key, { timestamps, expiry: Date.now() + CACHE_TTL });
 }
 
-// Supabase admin client — only used in Node.js API routes (not edge middleware)
-// Lazy import to avoid Edge Runtime issues
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 function getSupabaseAdmin() {
-  const { createClient } = require('@supabase/supabase-js');
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return supabaseAdmin;
 }
 
 // Cost factors for different AI models
