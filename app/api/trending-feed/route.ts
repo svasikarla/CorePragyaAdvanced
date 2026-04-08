@@ -64,11 +64,32 @@ export async function GET(request: Request) {
       query = query.ilike('category', `%${category}%`);
     }
 
-    const { data: entries, error: dbError } = await query;
+    let { data: entries, error: dbError } = await query;
 
+    // If the query failed (e.g. is_dismissed column missing — migration not yet applied),
+    // fall back to a query without the trending-feed-specific columns so the route still responds.
     if (dbError) {
-      console.error('Trending feed query error:', dbError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
+      console.error('Trending feed query error (attempting fallback):', dbError);
+
+      let fallbackQuery = supabaseAdmin
+        .from('knowledgebase')
+        .select('id, title, summary_text, source_ref, category, created_at, source_type')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(fetchLimit);
+
+      if (category) {
+        fallbackQuery = fallbackQuery.ilike('category', `%${category}%`);
+      }
+
+      const { data: fallbackEntries, error: fallbackError } = await fallbackQuery;
+
+      if (fallbackError) {
+        console.error('Trending feed fallback query error:', fallbackError);
+        return NextResponse.json({ error: 'Database error — ensure migrations are applied' }, { status: 500 });
+      }
+
+      entries = fallbackEntries;
     }
 
     const now = Date.now();

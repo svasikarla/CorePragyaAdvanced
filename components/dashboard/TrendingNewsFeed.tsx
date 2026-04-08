@@ -61,6 +61,7 @@ function getFaviconUrl(sourceRef: string): string {
 export default function TrendingNewsFeed({ accessToken }: TrendingNewsFeedProps) {
   const [articles, setArticles] = useState<TrendingArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -79,7 +80,14 @@ export default function TrendingNewsFeed({ accessToken }: TrendingNewsFeedProps)
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = body?.error || `Server error (${res.status})`;
+          setError(msg);
+          return;
+        }
+
+        setError(null);
         const data = await res.json();
 
         if (append) {
@@ -92,6 +100,7 @@ export default function TrendingNewsFeed({ accessToken }: TrendingNewsFeedProps)
         if (data.categories) setCategories(data.categories);
       } catch (err) {
         console.error("Error fetching trending feed:", err);
+        setError(err instanceof Error ? err.message : "Failed to load feed");
       }
     },
     [accessToken]
@@ -99,6 +108,7 @@ export default function TrendingNewsFeed({ accessToken }: TrendingNewsFeedProps)
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     fetchArticles(1, selectedCategory, false).finally(() => setLoading(false));
   }, [fetchArticles, selectedCategory]);
 
@@ -356,6 +366,33 @@ export default function TrendingNewsFeed({ accessToken }: TrendingNewsFeedProps)
                 </Button>
               </div>
             )}
+          </div>
+        ) : error ? (
+          /* Error state */
+          <div className="text-center py-12 flex flex-col items-center justify-center">
+            <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center mb-4 ring-1 ring-red-100">
+              <Flame className="h-7 w-7 text-red-300" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-700">Could not load feed</h3>
+            <p className="mt-2 text-sm text-red-600 max-w-sm mx-auto leading-relaxed font-mono">
+              {error}
+            </p>
+            <p className="mt-1 text-xs text-slate-400 max-w-sm mx-auto">
+              Make sure the trending feed migration has been applied and the server is running.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4 rounded-full text-orange-700 border-orange-200 hover:bg-orange-50"
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                fetchArticles(1, selectedCategory, false).finally(() => setLoading(false));
+              }}
+            >
+              <RefreshCw className="mr-2 h-3.5 w-3.5" />
+              Retry
+            </Button>
           </div>
         ) : (
           /* Empty state */

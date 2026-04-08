@@ -37,10 +37,21 @@ export async function middleware(request: NextRequest) {
     // Check if the user is rate limited
     const { isLimited, remaining, limit, resetTime } = createRateLimiter(userId, path)
     
-    // Check if the user has exceeded their quota (only if authenticated)
+    // Check if the user has exceeded their quota (only if authenticated).
+    // Time-boxed to 2 s so a slow/missing Supabase RPC never hangs the Edge Runtime
+    // and causes downstream "Failed to fetch" errors on the client.
     let quotaExceeded = false
     if (userId !== 'anonymous') {
-      quotaExceeded = !(await checkUserQuota(userId))
+      try {
+        const quotaResult = await Promise.race([
+          checkUserQuota(userId),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 2000)),
+        ])
+        quotaExceeded = !quotaResult
+      } catch {
+        // Default to allowing the request if quota check fails
+        quotaExceeded = false
+      }
     }
     
     // Create the response with rate limit headers
