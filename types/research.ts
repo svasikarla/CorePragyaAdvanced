@@ -122,3 +122,15 @@ export interface ResearchJob {
   created_at: string;
   updated_at: string;
 }
+
+/** Lightweight job row used in history listings (no report/evidence_package). */
+export interface JobSummary {
+  id: string;
+  user_id: string;
+  status: ResearchJob["status"];
+  config: ResearchConfig;
+  agents: AgentState[];
+  error?: string;
+  created_at: string;
+  updated_at: string;
+}

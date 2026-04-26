@@ -4,7 +4,8 @@ import { useResearchStore } from "@/store/research-store";
 import ResearchForm from "@/components/research/ResearchForm";
 import AgentMonitor from "@/components/research/AgentMonitor";
 import ReportViewer from "@/components/research/ReportViewer";
-import { FlaskConical, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { FlaskConical, RotateCcw, History } from "lucide-react";
 
 interface Props {
   accessToken: string | null;
@@ -55,15 +56,25 @@ export default function ResearchPageClient({ accessToken }: Props) {
             </div>
           </div>
 
-          {job && (
-            <button
-              onClick={resetJob}
+          <div className="flex items-center gap-2">
+            <Link
+              href="/research/history"
               className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100"
             >
-              <RotateCcw size={13} />
-              New research
-            </button>
-          )}
+              <History size={13} />
+              History
+            </Link>
+
+            {job && (
+              <button
+                onClick={resetJob}
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100"
+              >
+                <RotateCcw size={13} />
+                New research
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
