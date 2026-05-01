@@ -267,11 +267,10 @@ export async function POST(request: Request) {
     let emails;
     try {
       emails = await fetchUnreadEmails(20, user.email); // Limit to 20 emails and filter by user email
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching emails:', error);
 
-      // Return specific error messages for OAuth issues
-      if (error.message.includes('authenticate') || error.message.includes('expired')) {
+      if (error?.message?.includes('authenticate') || error?.message?.includes('expired')) {
         return NextResponse.json({
           error: error.message,
           authRequired: true,
@@ -280,7 +279,7 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({
-        error: 'Failed to fetch emails: ' + error.message
+        error: 'Failed to fetch emails: ' + (error?.message ?? 'Unknown error')
       }, { status: 500 });
     }
 

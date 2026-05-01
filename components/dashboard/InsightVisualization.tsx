@@ -1,20 +1,21 @@
 "use client"
 
 import { useEffect, useRef } from 'react'
-import { Chart, registerables } from 'chart.js'
+import { Chart, registerables, type ChartConfiguration } from 'chart.js'
 
-// Register Chart.js components
 Chart.register(...registerables)
 
-export default function InsightVisualization({ categories }) {
-  const chartRef = useRef(null)
-  const chartInstance = useRef(null)
+interface Props {
+  categories: Record<string, number>;
+}
+
+export default function InsightVisualization({ categories }: Props) {
+  const chartRef = useRef<HTMLCanvasElement>(null)
+  const chartInstance = useRef<Chart | null>(null)
 
   useEffect(() => {
     if (!categories || Object.keys(categories).length === 0) return
-    
-    // Sample data for Science/Politics visualization
-    // This would normally be derived from actual data analysis
+
     const data = [
       { x: 'Basic', y: 'Low', r: 10 },
       { x: 'Basic', y: 'Medium', r: 15 },
@@ -24,28 +25,27 @@ export default function InsightVisualization({ categories }) {
       { x: 'Intermediate', y: 'High', r: 12 },
       { x: 'Advanced', y: 'Low', r: 6 },
       { x: 'Advanced', y: 'Medium', r: 10 },
-      { x: 'Advanced', y: 'High', r: 15 }
+      { x: 'Advanced', y: 'High', r: 15 },
     ]
-    
-    // Create or update chart
+
     if (chartRef.current) {
-      if (chartInstance.current) {
-        chartInstance.current.destroy()
-      }
+      chartInstance.current?.destroy()
 
       const ctx = chartRef.current.getContext('2d')
-      chartInstance.current = new Chart(ctx, {
+      if (!ctx) return
+
+      const config: ChartConfiguration<'bubble'> = {
         type: 'bubble',
         data: {
           datasets: [{
-            label: 'Science/Politics Knowledge',
+            label: 'Knowledge Map',
             data: data.map(d => ({
               x: ['Basic', 'Intermediate', 'Advanced'].indexOf(d.x),
               y: ['Low', 'Medium', 'High'].indexOf(d.y),
-              r: d.r
+              r: d.r,
             })),
             backgroundColor: 'rgba(79, 70, 229, 0.7)',
-          }]
+          }],
         },
         options: {
           responsive: true,
@@ -57,53 +57,42 @@ export default function InsightVisualization({ categories }) {
               min: -0.5,
               max: 2.5,
               ticks: {
-                callback: function(value) {
-                  return ['Basic', 'Intermediate', 'Advanced'][value];
-                },
-                stepSize: 1
+                callback: (value) => (['Basic', 'Intermediate', 'Advanced'] as const)[value as number] ?? '',
+                stepSize: 1,
               },
-              title: {
-                display: true,
-                text: 'Basic / Advanced'
-              }
+              title: { display: true, text: 'Basic / Advanced' },
             },
             y: {
               min: -0.5,
               max: 2.5,
               ticks: {
-                callback: function(value) {
-                  return ['Low', 'Medium', 'High'][value];
-                },
-                stepSize: 1
+                callback: (value) => (['Low', 'Medium', 'High'] as const)[value as number] ?? '',
+                stepSize: 1,
               },
-              title: {
-                display: true,
-                text: 'Depth / Relevance'
-              }
-            }
+              title: { display: true, text: 'Depth / Relevance' },
+            },
           },
           plugins: {
-            legend: {
-              display: false
-            },
+            legend: { display: false },
             tooltip: {
               callbacks: {
-                label: function(context) {
-                  const xLabel = ['Basic', 'Intermediate', 'Advanced'][context.parsed.x];
-                  const yLabel = ['Low', 'Medium', 'High'][context.parsed.y];
-                  return `${xLabel}, ${yLabel}: ${context.parsed.r}`;
-                }
-              }
-            }
-          }
-        }
-      })
+                label: (context) => {
+                  const xLabel = ['Basic', 'Intermediate', 'Advanced'][context.parsed.x] ?? ''
+                  const yLabel = ['Low', 'Medium', 'High'][context.parsed.y] ?? ''
+                  const raw = context.raw as { r: number }
+                  return `${xLabel}, ${yLabel}: ${raw.r}`
+                },
+              },
+            },
+          },
+        },
+      }
+
+      chartInstance.current = new Chart(ctx, config)
     }
 
     return () => {
-      if (chartInstance.current) {
-        chartInstance.current.destroy()
-      }
+      chartInstance.current?.destroy()
     }
   }, [categories])
 

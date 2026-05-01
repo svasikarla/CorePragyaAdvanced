@@ -43,11 +43,11 @@ export async function POST(request: Request) {
     const queryEmbedding = embeddingResults[0];
 
     // Search for similar chunks using vector similarity
-    const { data: similarChunks, error: searchError } = await supabaseAdmin.rpc(
+    let { data: similarChunks, error: searchError } = await supabaseAdmin.rpc(
       'match_embeddings',
       {
         query_embedding: queryEmbedding,
-        match_threshold: 0.5, // Adjust as needed
+        match_threshold: 0.5,
         match_count: limit
       }
     );
@@ -55,12 +55,10 @@ export async function POST(request: Request) {
     if (searchError) {
       console.error('Error searching embeddings:', searchError);
 
-      // If the RPC function doesn't exist, create it
       if (searchError.message && searchError.message.includes('function "match_embeddings" does not exist')) {
         try {
           await createMatchEmbeddingsFunction();
 
-          // Try the search again
           const { data: retryChunks, error: retryError } = await supabaseAdmin.rpc(
             'match_embeddings',
             {
@@ -88,14 +86,10 @@ export async function POST(request: Request) {
     }
 
     if (!similarChunks || similarChunks.length === 0) {
-      return NextResponse.json({
-        results: [],
-        message: 'No similar content found'
-      });
+      return NextResponse.json({ results: [], message: 'No similar content found' });
     }
 
-    // Fetch the full knowledge base entries for the matched chunks
-    const kbIds = [...new Set(similarChunks.map(chunk => chunk.kb_id))];
+    const kbIds = [...new Set((similarChunks as any[]).map((chunk: any) => chunk.kb_id))];
 
     const { data: knowledgeEntries, error: kbError } = await supabaseAdmin
       .from('knowledgebase')
@@ -107,9 +101,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch knowledge entries' }, { status: 500 });
     }
 
-    // Combine the results
-    const results = similarChunks.map(chunk => {
-      const knowledgeEntry = knowledgeEntries.find(entry => entry.id === chunk.kb_id);
+    const results = (similarChunks as any[]).map((chunk: any) => {
+      const knowledgeEntry = (knowledgeEntries ?? []).find((entry: any) => entry.id === chunk.kb_id);
       return {
         chunk_id: chunk.id,
         kb_id: chunk.kb_id,
@@ -129,7 +122,7 @@ export async function POST(request: Request) {
     if (useAI && results.length > 0) {
       // Combine the chunks for context
       const context = results
-        .map(r => r.chunk_text)
+        .map((r: any) => r.chunk_text)
         .join('\n\n')
         .substring(0, 15000); // Limit context size
 

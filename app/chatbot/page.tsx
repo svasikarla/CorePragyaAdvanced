@@ -8,6 +8,7 @@ import RagChatbot from "@/components/chatbot/RagChatbot"
 
 export default function ChatbotPage() {
   const [user, setUser] = useState<any>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -22,6 +23,7 @@ export default function ChatbotPage() {
         }
         
         setUser(session.user)
+        setAccessToken(session.access_token)
       } catch (error) {
         console.error('Error getting user session:', error)
         router.push('/login')
@@ -45,7 +47,7 @@ export default function ChatbotPage() {
 
         {!loading && (
           <div className="mt-8">
-            <RagChatbot />
+            <RagChatbot accessToken={accessToken} />
           </div>
         )}
       </div>

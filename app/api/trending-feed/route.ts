@@ -89,7 +89,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Database error — ensure migrations are applied' }, { status: 500 });
       }
 
-      entries = fallbackEntries;
+      entries = fallbackEntries as typeof entries;
     }
 
     const now = Date.now();

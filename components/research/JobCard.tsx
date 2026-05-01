@@ -140,8 +140,13 @@ export default function JobCard({ job, onDeleted }: Props) {
   const createdAt = new Date(job.created_at);
   const relativeTime = formatRelative(createdAt);
 
+  const cardWrapper = isDone ? (
+    <Link href={`/research/history/${job.id}`} className="absolute inset-0 rounded-xl" aria-label={`View report: ${job.config.topic}`} />
+  ) : null;
+
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-colors">
+    <div className="relative bg-white border border-slate-200 rounded-xl p-5 hover:border-indigo-200 hover:shadow-sm transition-all">
+      {cardWrapper}
       <div className="flex items-start justify-between gap-4">
         {/* Left: topic + metadata */}
         <div className="flex-1 min-w-0">
@@ -183,7 +188,7 @@ export default function JobCard({ job, onDeleted }: Props) {
         </div>
 
         {/* Right: actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="relative z-10 flex items-center gap-2 shrink-0">
           {isDone && (
             <>
               <Link

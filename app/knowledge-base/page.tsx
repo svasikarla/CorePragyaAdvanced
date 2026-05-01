@@ -27,6 +27,7 @@ import {
 import debounce from "lodash/debounce"
 import { SearchBar } from "@/components/knowledge/SearchBar"
 import { KnowledgeCard } from "@/components/knowledge/KnowledgeCard"
+import ConceptMapViewer from "@/components/knowledge/ConceptMapViewer"
 import { FilterButtons } from "@/components/knowledge/FilterButtons"
 import { SortDropdown } from "@/components/knowledge/SortDropdown"
 import { BulkActionsButton } from "@/components/knowledge/BulkActionsButton"
@@ -57,9 +58,10 @@ interface SmartRecommendationsProps {
   currentEntry: any;
   allEntries: any[];
   onSelectEntry: (entry: any) => void;
+  getCategoryColor: (category: string) => string;
 }
 
-const SmartRecommendations = ({ currentEntry, allEntries, onSelectEntry }: SmartRecommendationsProps) => {
+const SmartRecommendations = ({ currentEntry, allEntries, onSelectEntry, getCategoryColor }: SmartRecommendationsProps) => {
   // Simple recommendation algorithm based on category and keywords
   const getRecommendations = () => {
     if (!currentEntry || !allEntries) return [];
@@ -220,7 +222,7 @@ const LearningPathSuggestions = ({ entries, onCreatePath }: LearningPathSuggesti
         estimatedTime: `${sortedEntries.length * 15} min`,
         difficulty: sortedEntries.length > 3 ? 'Advanced' : 'Beginner'
       };
-    }).filter(Boolean);
+    }).filter((p): p is NonNullable<typeof p> => p !== null);
   };
 
   const learningPaths = generateLearningPaths();
@@ -284,9 +286,10 @@ const LearningPathSuggestions = ({ entries, onCreatePath }: LearningPathSuggesti
 interface ContentPreviewProps {
   entry: any;
   onQuickAction: (action: string, entry: any) => void;
+  getCategoryColor: (category: string) => string;
 }
 
-const ContentPreview = ({ entry, onQuickAction }: ContentPreviewProps) => {
+const ContentPreview = ({ entry, onQuickAction, getCategoryColor }: ContentPreviewProps) => {
   return (
     <div className="w-80 p-4">
       <div className="space-y-3">
@@ -305,7 +308,7 @@ const ContentPreview = ({ entry, onQuickAction }: ContentPreviewProps) => {
         <div className="bg-gray-50 rounded-lg p-3 border">
           {entry.summaryJson ? (
             <div className="space-y-1">
-              {entry.summaryJson.key_points?.slice(0, 2).map((point, index) => (
+              {entry.summaryJson.key_points?.slice(0, 2).map((point: string, index: number) => (
                 <div key={index} className="flex items-start">
                   <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 mt-1.5 mr-2 shrink-0"></div>
                   <p className="text-xs text-gray-700 line-clamp-2">{point}</p>
@@ -542,7 +545,7 @@ const initialEntries = [
 
 // Add a debug component to check the structure of the entries
 // Add this component temporarily for debugging
-const DebugEntries = ({ entries }) => {
+const DebugEntries = ({ entries }: { entries: any[] }) => {
   if (process.env.NODE_ENV !== 'development') return null;
 
   return (
@@ -552,9 +555,23 @@ const DebugEntries = ({ entries }) => {
   );
 };
 
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="p-4 rounded-full bg-slate-100 mb-4">
+        <Brain className="h-7 w-7 text-slate-400" />
+      </div>
+      <h3 className="text-sm font-semibold text-slate-700 mb-1">No entries found</h3>
+      <p className="text-xs text-slate-400 max-w-xs">
+        Try adjusting your filters, or add new content to your knowledge base.
+      </p>
+    </div>
+  );
+}
+
 export default function KnowledgeBase() {
   const router = useRouter()
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const { startTimer, endTimer } = usePerformanceMonitor()
 
@@ -590,10 +607,11 @@ export default function KnowledgeBase() {
       default: return '#f3f4f6'; // gray-100
     }
   }, []);
-  const [entries, setEntries] = useState([]) // Initialize as empty array instead of undefined
+  const [entries, setEntries] = useState<any[]>([]) // Initialize as empty array instead of undefined
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [typeFilter, setTypeFilter] = useState('all')
+  const [bookmarkFilter, setBookmarkFilter] = useState(false)
   const [sortOrder, setSortOrder] = useState('newest')
   const [url, setUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -706,7 +724,7 @@ export default function KnowledgeBase() {
 
         // Announce page load to screen readers
         ScreenReaderAnnouncer.announce('Knowledge base loaded successfully');
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error during initial load:', error);
       } finally {
         // Always try to end the timer, but handle the case where it wasn't started
@@ -721,7 +739,7 @@ export default function KnowledgeBase() {
     getUser()
   }, [router]) // Remove startTimer and endTimer from dependencies
 
-  const fetchKnowledgeBaseEntries = useCallback(async (userId) => {
+  const fetchKnowledgeBaseEntries = useCallback(async (userId: string) => {
     // Prevent multiple simultaneous calls
     if (isFetchingEntries) {
       console.log('Already fetching entries, skipping duplicate call');
@@ -757,7 +775,7 @@ export default function KnowledgeBase() {
         topCategory: 'None',
         topCategoryCount: 0
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in fetchKnowledgeBaseEntries:', error);
       // Ensure entries is set to an empty array on error
       setEntries([]);
@@ -860,7 +878,7 @@ export default function KnowledgeBase() {
         description: "The content has been successfully summarized and added to your knowledge base.",
       });
       setIsAddUrlOpen(false); // Close dialog on success
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding URL:', error);
       toast({
         title: "Error adding URL",
@@ -937,7 +955,7 @@ export default function KnowledgeBase() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing from email:', error);
       toast({
         title: "Error refreshing from email",
@@ -969,7 +987,7 @@ export default function KnowledgeBase() {
         title: "Entry removed",
         description: "The entry has been removed from your knowledge base.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting entry:', error);
       toast({
         title: "Error removing entry",
@@ -986,11 +1004,32 @@ export default function KnowledgeBase() {
     }
   };
 
-  const handleBookmarkEntry = (id: string) => {
-    toast({
-      title: "Entry bookmarked",
-      description: "This feature will be available soon.",
-    });
+  const handleBookmarkEntry = async (id: string, currentlyBookmarked: boolean) => {
+    const newState = !currentlyBookmarked;
+    // Optimistic update
+    setEntries((prev: any[]) =>
+      prev.map((e: any) => e.id === id ? { ...e, is_bookmarked: newState } : e)
+    );
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const res = await fetch("/api/bookmark", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ id, bookmarked: newState }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast({ title: newState ? "Bookmarked" : "Bookmark removed" });
+    } catch {
+      // Revert on failure
+      setEntries((prev: any[]) =>
+        prev.map((e: any) => e.id === id ? { ...e, is_bookmarked: currentlyBookmarked } : e)
+      );
+      toast({ title: "Error", description: "Could not update bookmark.", variant: "destructive" });
+    }
   };
 
   // Use enhanced search for better search results
@@ -1012,7 +1051,10 @@ export default function KnowledgeBase() {
         // Type filter
         const matchesType = typeFilter === 'all' || entry.type === typeFilter;
 
-        return matchesCategory && matchesType;
+        // Bookmark filter
+        const matchesBookmark = !bookmarkFilter || (entry as any).is_bookmarked === true;
+
+        return matchesCategory && matchesType && matchesBookmark;
       })
       .sort((a, b) => {
         // If we have search scores and there's a search query, prioritize by relevance first
@@ -1029,11 +1071,11 @@ export default function KnowledgeBase() {
         } else if (sortOrder === 'oldest') {
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         } else if (sortOrder === 'popular') {
-          return (b.viewCount || 0) - (a.viewCount || 0);
+          return ((b as any).viewCount || 0) - ((a as any).viewCount || 0);
         }
         return 0;
       });
-  }, [entries, searchResults, selectedCategory, typeFilter, debouncedSearchQuery, sortOrder]);
+  }, [entries, searchResults, selectedCategory, typeFilter, bookmarkFilter, debouncedSearchQuery, sortOrder]);
 
   // Announce search results to screen readers
   useEffect(() => {
@@ -1079,6 +1121,19 @@ export default function KnowledgeBase() {
               typeFilter={typeFilter}
               onTypeFilterChange={setTypeFilter}
             />
+
+            {/* Bookmark filter pill */}
+            <button
+              onClick={() => setBookmarkFilter(!bookmarkFilter)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                bookmarkFilter
+                  ? "bg-amber-500 text-white border-amber-500"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-amber-400 hover:text-amber-600"
+              }`}
+            >
+              <Bookmark size={12} className={bookmarkFilter ? "fill-white" : ""} />
+              Bookmarked
+            </button>
 
             {/* Sort and Actions */}
             <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
@@ -1277,7 +1332,7 @@ export default function KnowledgeBase() {
   };
 
   // Add this function to handle the Read More button click
-  const handleReadMore = async (entry) => {
+  const handleReadMore = async (entry: any) => {
     setSelectedEntry(entry);
     setIsDetailOpen(true);
     setIsLoadingDetail(true);
@@ -1296,12 +1351,12 @@ export default function KnowledgeBase() {
       const formattedText = data.raw_text
         ? data.raw_text
           .split('\n')
-          .filter(para => para.trim().length > 0)
+          .filter((para: string) => para.trim().length > 0)
           .join('\n\n')
         : "No content available";
 
       setRawText(formattedText);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching entry details:', error);
       setRawText("Failed to load content. Please try again.");
       toast({
@@ -1315,7 +1370,7 @@ export default function KnowledgeBase() {
   };
 
   // Function to handle PDF upload
-  const handleAddPdf = (newEntry) => {
+  const handleAddPdf = (newEntry: any) => {
     setEntries(prevEntries => [newEntry, ...prevEntries]);
     // Remove this line as filteredEntries is computed, not a state variable
     // setFilteredEntries(prevEntries => [newEntry, ...prevEntries]);
@@ -1343,7 +1398,7 @@ export default function KnowledgeBase() {
   };
 
   // AI Learning Feature Handlers
-  const handleGenerateFlashcards = async (entry) => {
+  const handleGenerateFlashcards = async (entry: any) => {
     toast({ title: "Generating Flashcards", description: `Creating smart flashcards from "${entry.title}"...` });
 
     try {
@@ -1369,12 +1424,12 @@ export default function KnowledgeBase() {
       await saveLearningProgress(entry.id, { flashcardsGenerated: true, completionPercentage: newCompletion });
 
       setFlashcardModal({ open: true, entryTitle: entry.title || 'Untitled', cards, currentIndex: 0, showAnswer: false });
-    } catch (error) {
+    } catch (error: any) {
       toast({ title: "Error generating flashcards", description: "Please try again later.", variant: "destructive" });
     }
   };
 
-  const handleCreateConceptMap = async (entry) => {
+  const handleCreateConceptMap = async (entry: any) => {
     toast({ title: "Creating Concept Map", description: `Mapping concepts from "${entry.title}"...` });
 
     try {
@@ -1399,12 +1454,12 @@ export default function KnowledgeBase() {
       await saveLearningProgress(entry.id, { conceptMapCreated: true, completionPercentage: newCompletion });
 
       setConceptMapModal({ open: true, entryTitle: entry.title || 'Untitled', data: conceptMap });
-    } catch (error) {
+    } catch (error: any) {
       toast({ title: "Error creating concept map", description: "Please try again later.", variant: "destructive" });
     }
   };
 
-  const handleAskAI = async (entry) => {
+  const handleAskAI = async (entry: any) => {
     setAskAIModal({ open: true, entry, question: '', answer: '', isLoading: false });
   };
 
@@ -1435,13 +1490,13 @@ export default function KnowledgeBase() {
       await saveLearningProgress(askAIModal.entry.id, { questionsAsked: newQuestions, completionPercentage: newCompletion });
 
       setAskAIModal(prev => ({ ...prev, answer, isLoading: false }));
-    } catch (error) {
+    } catch (error: any) {
       setAskAIModal(prev => ({ ...prev, isLoading: false }));
       toast({ title: "Error getting answer", description: "Please try again later.", variant: "destructive" });
     }
   };
 
-  const handleTrackProgress = async (entry) => {
+  const handleTrackProgress = async (entry: any) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
@@ -1460,7 +1515,7 @@ export default function KnowledgeBase() {
       });
 
       toast({ title: "Progress Saved!", description: "Your learning progress has been saved." });
-    } catch (error) {
+    } catch (error: any) {
       toast({ title: "Error saving progress", description: "Please try again later.", variant: "destructive" });
     }
   };
@@ -1530,7 +1585,7 @@ export default function KnowledgeBase() {
         title: "Entries removed",
         description: `${selectedEntries.length} entries have been removed from your knowledge base.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting entries:', error);
       toast({
         title: "Error removing entries",
@@ -1583,7 +1638,7 @@ export default function KnowledgeBase() {
 
       setSelectedEntries([]);
       setIsBulkMode(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating flashcards:', error);
       toast({
         title: "Error generating flashcards",
@@ -1626,6 +1681,8 @@ export default function KnowledgeBase() {
                       searchQuery={debouncedSearchQuery}
                       onReadMore={handleReadMore}
                       onDelete={handleDeleteEntry}
+                      onBookmark={(id) => handleBookmarkEntry(id, !!(entry as any).is_bookmarked)}
+                      isBookmarked={!!(entry as any).is_bookmarked}
                       getCategoryColor={getCategoryColor}
                       getCategoryColorValue={getCategoryColorValue}
                       isDeleting={deletingEntries.has(entry.id)}
@@ -1688,34 +1745,12 @@ export default function KnowledgeBase() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Concept Map — {conceptMapModal.entryTitle}</DialogTitle>
-            <DialogDescription>Central concept: {conceptMapModal.data?.centralConcept}</DialogDescription>
+            <DialogDescription>
+              {conceptMapModal.data?.nodes.length} concepts · {conceptMapModal.data?.edges.length} relationships
+            </DialogDescription>
           </DialogHeader>
           {conceptMapModal.data && (
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-2">Concepts ({conceptMapModal.data.nodes.length})</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {conceptMapModal.data.nodes.map(node => (
-                    <div key={node.id} className="p-2 rounded border bg-purple-50 border-purple-200">
-                      <p className="font-medium text-sm text-purple-800">{node.label}</p>
-                      <p className="text-xs text-gray-600 mt-1">{node.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-2">Relationships ({conceptMapModal.data.edges.length})</p>
-                <div className="space-y-1">
-                  {conceptMapModal.data.edges.map((edge, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                      <span className="font-medium">{edge.from}</span>
-                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{edge.label}</span>
-                      <span className="font-medium">{edge.to}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <ConceptMapViewer data={conceptMapModal.data} />
           )}
         </DialogContent>
       </Dialog>

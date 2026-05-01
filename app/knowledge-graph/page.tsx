@@ -53,7 +53,7 @@ export default function KnowledgeGraphPage() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const graphRef = useRef<any>();
+  const graphRef = useRef<any>(null);
   const router = useRouter();
 
   // Fetch graph data
@@ -142,7 +142,7 @@ export default function KnowledgeGraphPage() {
     }
   };
 
-  const handleNodeClick = useCallback((node: GraphNode) => {
+  const handleNodeClick = useCallback((node: any) => {
     setSelectedNode(node);
     // Center camera on node
     if (graphRef.current && view === '2D') {

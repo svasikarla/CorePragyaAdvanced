@@ -14,6 +14,7 @@ import RagChatbot from "@/components/chatbot/RagChatbot"
 
 export default function PersonalRagBotPage() {
   const [user, setUser] = useState<any>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [processingEmbeddings, setProcessingEmbeddings] = useState(false)
   const [embeddingStats, setEmbeddingStats] = useState<{
@@ -36,6 +37,7 @@ export default function PersonalRagBotPage() {
         }
         
         setUser(session.user)
+        setAccessToken(session.access_token)
         await fetchEmbeddingStats()
       } catch (error) {
         console.error('Error getting user session:', error)
@@ -114,7 +116,7 @@ export default function PersonalRagBotPage() {
       toast({
         title: "Success",
         description: `Processed ${result.processed} embeddings. ${result.failed || 0} failed.`,
-        variant: result.failed > 0 ? "default" : "success"
+        variant: "default"
       })
 
       // Refresh stats
@@ -159,7 +161,7 @@ export default function PersonalRagBotPage() {
             </TabsList>
             
             <TabsContent value="chat" className="space-y-4">
-              <RagChatbot />
+              <RagChatbot accessToken={accessToken} />
             </TabsContent>
             
             <TabsContent value="manage" className="space-y-4">

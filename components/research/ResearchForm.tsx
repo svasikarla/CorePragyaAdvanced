@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Database } from "lucide-react";
 import { useResearchStore } from "@/store/research-store";
 import { supabase } from "@/lib/supabase/client";
 import LLMSelector from "./LLMSelector";
@@ -150,6 +150,37 @@ export default function ResearchForm() {
               </div>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Search My KB toggle */}
+      <div
+        className="flex items-center justify-between rounded-lg px-4 py-3 cursor-pointer select-none"
+        style={{
+          backgroundColor: config.searchMyKB ? "rgba(79,70,229,0.06)" : "var(--cp-research-panel)",
+          border: `1px solid ${config.searchMyKB ? "var(--cp-research-accent)" : "var(--cp-research-border)"}`,
+        }}
+        onClick={() => setConfig({ searchMyKB: !config.searchMyKB })}
+      >
+        <div className="flex items-center gap-3">
+          <Database size={15} style={{ color: config.searchMyKB ? "var(--cp-research-accent)" : "var(--cp-research-muted)" }} />
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--cp-research-text)" }}>
+              Search my Knowledge Base first
+            </p>
+            <p className="text-xs" style={{ color: "var(--cp-research-muted)" }}>
+              Blend your saved knowledge with web results
+            </p>
+          </div>
+        </div>
+        <div
+          className="relative shrink-0 h-5 w-9 rounded-full transition-colors"
+          style={{ backgroundColor: config.searchMyKB ? "var(--cp-research-accent)" : "var(--cp-research-border)" }}
+        >
+          <div
+            className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform"
+            style={{ transform: config.searchMyKB ? "translateX(16px)" : "translateX(2px)" }}
+          />
         </div>
       </div>
 

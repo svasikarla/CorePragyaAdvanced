@@ -1,10 +1,114 @@
 import { nanoid } from "nanoid";
-import type { ResearchConfig, ResearchJob, AgentState, SubTopicFindings } from "@/types/research";
+import { createClient } from "@supabase/supabase-js";
+import type { ResearchConfig, ResearchJob, AgentState, SubTopicFindings, Contradiction } from "@/types/research";
 import { jobStore } from "@/lib/research/store/job-store";
 import { sseEmitter } from "@/lib/research/store/sse-emitter";
 import { runOrchestrator } from "./orchestrator";
 import { runSearcher } from "./searcher";
 import { runSynthesizer } from "./synthesizer";
+import { callLLM, parseJSON } from "@/lib/research/llm-adapter";
+import { generateEmbeddings } from "@/lib/ai-clients";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+async function fetchKBContext(topic: string, userId: string): Promise<string> {
+  try {
+    const [[embedding]] = await Promise.all([generateEmbeddings(topic)]);
+    const { data: chunks } = await supabaseAdmin.rpc("match_embeddings", {
+      query_embedding: embedding,
+      match_threshold: 0.45,
+      match_count: 8,
+    });
+    if (!chunks || chunks.length === 0) return "";
+
+    const kbIds = [...new Set((chunks as any[]).map((c: any) => c.kb_id))];
+    const { data: entries } = await supabaseAdmin
+      .from("knowledgebase")
+      .select("title, summary_text, category")
+      .in("id", kbIds)
+      .eq("user_id", userId);
+
+    if (!entries || entries.length === 0) return "";
+
+    return entries
+      .map((e: any) => `[KB: ${e.title} — ${e.category}]\n${e.summary_text}`)
+      .join("\n\n")
+      .slice(0, 6000);
+  } catch {
+    return "";
+  }
+}
+
+// ── Cross-analysis ────────────────────────────────────────────────────────────
+
+interface CrossAnalysisResult {
+  cross_cutting_insights: string[];
+  contradictions: Contradiction[];
+}
+
+async function computeCrossAnalysis(
+  findings: SubTopicFindings[],
+  config: ResearchConfig
+): Promise<CrossAnalysisResult> {
+  if (findings.length < 2) {
+    return { cross_cutting_insights: [], contradictions: [] };
+  }
+
+  // Build a compact evidence digest for cross-analysis
+  const digest = findings
+    .map((f) => {
+      const assertions = f.key_assertions.slice(0, 5).map((a) => `  • ${a.claim}`).join("\n");
+      const dataPoints = f.data_points.slice(0, 3).map((d) => `  ○ ${d.fact}`).join("\n");
+      return `[${f.sub_topic}]\n${assertions}\n${dataPoints}`;
+    })
+    .join("\n\n");
+
+  const prompt = `You are a research analyst. Below are evidence summaries from ${findings.length} parallel research threads on the topic.
+
+${digest}
+
+Your tasks:
+1. Identify 2-4 CROSS-CUTTING INSIGHTS — observations that only emerge when comparing across multiple threads, not from any single one. Must be specific, not generic.
+2. Identify CONTRADICTIONS — cases where two threads make conflicting factual claims. For each contradiction: state the claim, which threads conflict, and which source is more credible.
+
+Respond ONLY with valid JSON:
+{
+  "cross_cutting_insights": ["specific insight connecting thread A and B", "..."],
+  "contradictions": [
+    {
+      "claim": "the disputed claim",
+      "source_a": "sub-topic A name",
+      "source_b": "sub-topic B name",
+      "resolution": "newer_wins|primary_wins|unresolved",
+      "note": "which is more credible and why"
+    }
+  ]
+}`;
+
+  try {
+    const raw = await callLLM({
+      provider: config.provider,
+      model: config.model,
+      system: "You are a precise research analyst identifying cross-topic patterns and contradictions. Respond only with valid JSON.",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1500,
+      temperature: 0.2,
+    });
+    return parseJSON<CrossAnalysisResult>(raw);
+  } catch {
+    // Non-fatal — fall back to thin-coverage note
+    const thinTopics = findings.filter((f) => f.coverage === "thin").map((f) => f.sub_topic);
+    return {
+      cross_cutting_insights: thinTopics.length > 0
+        ? [`Coverage is thin for: ${thinTopics.join(", ")} — treat those sections with appropriate caveats.`]
+        : [],
+      contradictions: [],
+    };
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -12,7 +116,14 @@ function emit(jobId: string, event: string, data: object) {
   sseEmitter.emit(jobId, event, data);
 }
 
-function buildSearcherAgents(count: number): AgentState[] {
+const DEPTH_SEARCHER_COUNT: Record<string, number> = {
+  tier1: 3,
+  tier2: 4,
+  tier3: 5,
+};
+
+function buildSearcherAgents(config: ResearchConfig): AgentState[] {
+  const count = DEPTH_SEARCHER_COUNT[config.depth] ?? 4;
   return Array.from({ length: count }, (_, i) => ({
     id: `searcher-${String.fromCharCode(97 + i)}`,
     name: `Searcher ${String.fromCharCode(65 + i)}`,
@@ -44,7 +155,8 @@ export async function startResearchJob(
     config,
     agents: [
       { id: "orchestrator", name: "Orchestrator", role: "Decomposing topic", status: "idle" },
-      ...buildSearcherAgents(5),
+      ...buildSearcherAgents(config),
+      { id: "cross-analysis", name: "Cross-Analyser", role: "Finding connections", status: "idle" },
       { id: "synthesizer", name: "Synthesizer", role: "Writing report", status: "idle" },
     ],
     created_at: new Date().toISOString(),
@@ -102,12 +214,6 @@ async function runJob(jobId: string, config: ResearchConfig) {
     }
   }
 
-  // Mark unused searchers as not needed
-  for (let i = activeSearchers; i < 5; i++) {
-    const id = allSearcherIds[i];
-    if (id) await jobStore.updateAgent(jobId, id, { status: "idle", note: "not needed" });
-  }
-
   // ── Phase 2: Parallel searchers ────────────────────────────────────────────
   const topicsToSearch = sub_topics.slice(0, activeSearchers);
 
@@ -150,27 +256,44 @@ async function runJob(jobId: string, config: ResearchConfig) {
     (f): f is SubTopicFindings => f !== null
   );
 
-  // ── Cross-analysis ─────────────────────────────────────────────────────────
+  // ── Cross-analysis (LLM-powered) ───────────────────────────────────────────
   const allGaps = findings.flatMap((f) => f.gaps);
   const allSources = findings.flatMap((f) => f.sources);
 
-  const thinTopics = findings
-    .filter((f) => f.coverage === "thin")
-    .map((f) => f.sub_topic);
-  const crossCuttingInsights =
-    thinTopics.length > 0
-      ? [`Coverage is thin for: ${thinTopics.join(", ")} — treat those sections with appropriate caveats.`]
-      : [];
+  await jobStore.updateAgent(jobId, "cross-analysis", { status: "running", started_at: new Date().toISOString() });
+  emit(jobId, "agent_update", { agentId: "cross-analysis", status: "running" });
+
+  const { cross_cutting_insights, contradictions } = await computeCrossAnalysis(findings, config);
+
+  await jobStore.updateAgent(jobId, "cross-analysis", {
+    status: "done",
+    note: `${cross_cutting_insights.length} insights, ${contradictions.length} contradictions`,
+    completed_at: new Date().toISOString(),
+  });
+  emit(jobId, "agent_update", { agentId: "cross-analysis", status: "done" });
+
+  // Compute date range from sources
+  const sourceDates = allSources
+    .map((s) => s.date)
+    .filter((d) => d && d !== "unknown")
+    .map((d) => new Date(d).getTime())
+    .filter((t) => !isNaN(t));
+  const dateRange = sourceDates.length > 0
+    ? {
+        earliest: new Date(Math.min(...sourceDates)).toISOString().split("T")[0],
+        latest: new Date(Math.max(...sourceDates)).toISOString().split("T")[0],
+      }
+    : { earliest: "", latest: "" };
 
   const evidencePackage = {
     sub_topics_covered: findings.length,
     total_sources: allSources.length,
     primary_sources: allSources.filter((s) => s.type === "primary").length,
-    date_range: { earliest: "", latest: "" },
+    date_range: dateRange,
     gaps_identified: allGaps,
     findings,
-    cross_cutting_insights: crossCuttingInsights,
-    contradictions: [],
+    cross_cutting_insights,
+    contradictions,
     raw_source_list: allSources,
   };
 
@@ -181,6 +304,18 @@ async function runJob(jobId: string, config: ResearchConfig) {
     domain_context,
   });
 
+  // ── Optional: Personal KB context ─────────────────────────────────────────
+  let kbContext = "";
+  if (config.searchMyKB) {
+    const job = await jobStore.get(jobId);
+    if (job) {
+      kbContext = await fetchKBContext(config.topic, job.user_id);
+      if (kbContext) {
+        emit(jobId, "kb_context", { found: true, chars: kbContext.length });
+      }
+    }
+  }
+
   // ── Phase 3: Synthesizer ───────────────────────────────────────────────────
   await jobStore.updateAgent(jobId, "synthesizer", {
     status: "running",
@@ -188,7 +323,7 @@ async function runJob(jobId: string, config: ResearchConfig) {
   });
   emit(jobId, "agent_update", { agentId: "synthesizer", status: "running" });
 
-  const report = await runSynthesizer(evidencePackage, config);
+  const report = await runSynthesizer(evidencePackage, config, kbContext, domain_context);
 
   await jobStore.updateAgent(jobId, "synthesizer", {
     status: "done",

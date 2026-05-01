@@ -9,6 +9,8 @@ import {
   Loader2,
   History,
   AlertCircle,
+  Brain,
+  ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import ReportSection from "@/components/research/ReportSection";
@@ -79,15 +81,30 @@ export default function JobDetailClient({ job, accessToken }: Props) {
       {/* Header */}
       <div className="border-b bg-white">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
+            >
+              <Brain size={14} />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+            <ChevronRight size={13} className="text-slate-300 shrink-0" />
+            <Link
+              href="/research"
+              className="text-xs text-slate-400 hover:text-indigo-600 transition-colors hidden sm:inline shrink-0"
+            >
+              Research
+            </Link>
+            <ChevronRight size={13} className="text-slate-300 shrink-0 hidden sm:inline" />
             <Link
               href="/research/history"
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors shrink-0"
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
             >
-              <ArrowLeft size={14} />
-              History
+              <History size={12} />
+              <span className="hidden md:inline">History</span>
             </Link>
-            <span className="text-slate-300">/</span>
+            <ChevronRight size={13} className="text-slate-300 shrink-0" />
             <h1 className="text-sm font-semibold text-slate-800 truncate">
               {job.config.topic}
             </h1>
@@ -97,8 +114,8 @@ export default function JobDetailClient({ job, accessToken }: Props) {
             href="/research/history"
             className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 shrink-0"
           >
-            <History size={13} />
-            All history
+            <ArrowLeft size={13} />
+            Back
           </Link>
         </div>
       </div>

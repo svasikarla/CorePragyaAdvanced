@@ -20,6 +20,7 @@ export interface ResearchConfig {
   depth: DepthTier;
   audience: AudienceType;
   format: OutputFormat;
+  searchMyKB?: boolean;
 }
 
 // ── Orchestrator output ───────────────────────────────────────────────────────

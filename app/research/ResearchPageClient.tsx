@@ -5,7 +5,7 @@ import ResearchForm from "@/components/research/ResearchForm";
 import AgentMonitor from "@/components/research/AgentMonitor";
 import ReportViewer from "@/components/research/ReportViewer";
 import Link from "next/link";
-import { FlaskConical, RotateCcw, History } from "lucide-react";
+import { FlaskConical, RotateCcw, History, Brain, ChevronRight } from "lucide-react";
 
 interface Props {
   accessToken: string | null;
@@ -43,6 +43,14 @@ export default function ResearchPageClient({ accessToken }: Props) {
       <div className="border-b bg-white">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
+            >
+              <Brain size={14} />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+            <ChevronRight size={13} className="text-slate-300 shrink-0" />
             <div className="p-2 rounded-lg bg-indigo-50">
               <FlaskConical className="h-5 w-5 text-indigo-600" />
             </div>

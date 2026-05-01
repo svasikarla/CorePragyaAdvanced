@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Globe, Mail, Lightbulb, Trash2, ChevronRight } from "lucide-react";
+import { Globe, Mail, Lightbulb, Trash2, ChevronRight, Bookmark } from "lucide-react";
 import Link from "next/link";
 import { SafeHighlightedText } from "./EnhancedHighlightedText";
 import { LoadingOverlay } from "./LoadingStates";
@@ -46,53 +46,31 @@ const SummaryBullets = ({ summaryJson }: SummaryBulletsProps) => {
     return null;
   }
 
-  let allPoints = [];
+  let allPoints: string[] = [];
 
-  // Extract key points
-  if (summaryJson.key_points && Array.isArray(summaryJson.key_points)) {
-    allPoints = [...allPoints, ...summaryJson.key_points];
+  if (summaryJson.key_points && Array.isArray(summaryJson.key_points))
+    allPoints = [...allPoints, ...summaryJson.key_points.map(String)];
+  if (summaryJson.main_points && Array.isArray(summaryJson.main_points))
+    allPoints = [...allPoints, ...summaryJson.main_points.map(String)];
+  if (summaryJson.bullet_points && Array.isArray(summaryJson.bullet_points))
+    allPoints = [...allPoints, ...summaryJson.bullet_points.map(String)];
+  if (summaryJson.points && Array.isArray(summaryJson.points))
+    allPoints = [...allPoints, ...summaryJson.points.map(String)];
+
+  if (allPoints.length === 0 && typeof summaryJson.summary === 'string') {
+    const summaryPoints = summaryJson.summary
+      .split(/[•\-\*]\s*/)
+      .filter((p: string) => p.trim().length > 0)
+      .map((p: string) => p.trim());
+    if (summaryPoints.length > 1) allPoints = summaryPoints.slice(1);
   }
 
-  // Extract main points
-  if (summaryJson.main_points && Array.isArray(summaryJson.main_points)) {
-    allPoints = [...allPoints, ...summaryJson.main_points];
-  }
-
-  // Extract bullet points
-  if (summaryJson.bullet_points && Array.isArray(summaryJson.bullet_points)) {
-    allPoints = [...allPoints, ...summaryJson.bullet_points];
-  }
-
-  // Extract points array
-  if (summaryJson.points && Array.isArray(summaryJson.points)) {
-    allPoints = [...allPoints, ...summaryJson.points];
-  }
-
-  // If no points found, try to extract from summary field
-  if (allPoints.length === 0 && summaryJson.summary) {
-    if (typeof summaryJson.summary === 'string') {
-      // Try to split by bullet points or line breaks
-      const summaryPoints = summaryJson.summary
-        .split(/[•\-\*]\s*/)
-        .filter(point => point.trim().length > 0)
-        .map(point => point.trim());
-
-      if (summaryPoints.length > 1) {
-        allPoints = summaryPoints.slice(1); // Skip first empty element
-      }
-    }
-  }
-
-  // Remove duplicates and limit to 3 points
   const uniquePoints = [...new Set(allPoints)].slice(0, 3);
-
-  if (uniquePoints.length === 0) {
-    return null;
-  }
+  if (uniquePoints.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      {uniquePoints.map((point, index) => (
+      {uniquePoints.map((point: string, index: number) => (
         <div key={index} className="flex items-start">
           <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 mt-2 mr-3 shrink-0"></div>
           <p className="text-sm text-gray-700 leading-relaxed">{point}</p>
@@ -118,6 +96,8 @@ interface KnowledgeCardProps {
   searchQuery: string;
   onReadMore: (entry: KnowledgeEntry) => void;
   onDelete: (id: string) => void;
+  onBookmark?: (id: string) => void;
+  isBookmarked?: boolean;
   getCategoryColor: (category: string) => string;
   getCategoryColorValue: (category: string) => string;
   isDeleting?: boolean;
@@ -128,6 +108,8 @@ export const KnowledgeCard = React.memo(function KnowledgeCard({
   searchQuery,
   onReadMore,
   onDelete,
+  onBookmark,
+  isBookmarked = false,
   getCategoryColor,
   getCategoryColorValue,
   isDeleting = false
@@ -171,6 +153,17 @@ export const KnowledgeCard = React.memo(function KnowledgeCard({
                 </CardTitle>
               </div>
 
+              {onBookmark && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 transition-colors ${isBookmarked ? "text-amber-500 opacity-100" : "text-gray-400 hover:text-amber-500 hover:bg-amber-50 opacity-0 group-hover:opacity-100 focus:opacity-100"}`}
+                  onClick={(e) => { e.stopPropagation(); onBookmark(entry.id); }}
+                  aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+                >
+                  <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-amber-500" : ""}`} aria-hidden="true" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
