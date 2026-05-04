@@ -42,6 +42,7 @@ export default function AppHeader({ user }: AppHeaderProps) {
     { name: "Personal RAG Bot", href: "/personal-rag-bot" },
     { name: "Subscriptions", href: "/knowledge-base/subscriptions" },
     { name: "Research", href: "/research" },
+    { name: "Tech Research", href: "/tech-research" },
   ]
 
   return (

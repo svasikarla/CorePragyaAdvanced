@@ -117,11 +117,7 @@ export const setupGmailClient = async () => {
       throw new Error('No stored tokens found. User needs to authenticate.');
     }
 
-    // Check if tokens are expired
-    const now = Date.now();
-    const isExpired = tokens.expiry_date && tokens.expiry_date < now;
-
-    if (isExpired) {
+    if (!tokens.refresh_token) {
       throw new Error('Gmail tokens have expired. Please re-authenticate at /setup/gmail');
     }
 

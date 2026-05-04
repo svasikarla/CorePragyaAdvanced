@@ -56,7 +56,8 @@ export async function callLLM(params: LLMCallParams): Promise<string> {
 
 /**
  * Safely parse JSON from LLM output.
- * Handles ```json ... ``` fencing, leading prose, truncated output, and nested objects.
+ * Handles ```json ... ``` fencing, leading prose, truncated output, nested objects,
+ * and literal newlines/tabs inside string values (a common LLM output defect).
  */
 export function parseJSON<T>(text: string): T {
   // Strip markdown code fences
@@ -70,23 +71,80 @@ export function parseJSON<T>(text: string): T {
     return JSON.parse(stripped) as T;
   } catch { /* fall through */ }
 
-  // 2. Extract first top-level JSON object or array
-  const match = stripped.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  // 2. Sanitize: replace literal newlines/tabs inside JSON strings with escape sequences.
+  // LLMs often emit raw newlines inside "code" fields which makes JSON.parse reject the text.
+  const sanitized = sanitizeJsonStrings(stripped);
+  try {
+    return JSON.parse(sanitized) as T;
+  } catch { /* fall through */ }
+
+  // 3. Extract first top-level JSON object or array
+  const match = sanitized.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   if (match) {
     try {
       return JSON.parse(match[0]) as T;
     } catch { /* fall through */ }
   }
 
-  // 3. Attempt repair: if output is truncated mid-JSON, close all open brackets
+  // 4. Repair truncated JSON then sanitize again
   try {
-    const repaired = repairTruncatedJSON(stripped);
+    const repaired = sanitizeJsonStrings(repairTruncatedJSON(sanitized));
     return JSON.parse(repaired) as T;
   } catch { /* fall through */ }
 
   throw new Error(
     `Could not parse JSON from LLM response. First 600 chars:\n${text.slice(0, 600)}`
   );
+}
+
+/**
+ * Replace literal control characters inside JSON string values with their JSON escape sequences.
+ * JSON does not allow raw newline (0x0A), carriage return (0x0D), or tab (0x09) inside strings.
+ * LLMs frequently emit these in "code" and "integration_overview" fields.
+ */
+function sanitizeJsonStrings(text: string): string {
+  let result = "";
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+
+    if (escape) {
+      escape = false;
+      result += ch;
+      continue;
+    }
+
+    if (ch === "\\") {
+      escape = true;
+      result += ch;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+
+    if (inString) {
+      // Replace control chars that are illegal inside JSON strings
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+      // Replace other ASCII control characters
+      const code = ch.charCodeAt(0);
+      if (code < 0x20) {
+        result += `\\u${code.toString(16).padStart(4, "0")}`;
+        continue;
+      }
+    }
+
+    result += ch;
+  }
+
+  return result;
 }
 
 /**

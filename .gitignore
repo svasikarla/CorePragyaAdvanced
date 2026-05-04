@@ -38,3 +38,28 @@ next-env.d.ts
 # system
 .DS_Store
 Thumbs.db
+*.tmp
+*.swp
+*.swo
+
+# ide / editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# claude code
+.claude/
+
+# test coverage
+/coverage/
+
+# supabase local dev
+.supabase/
+
+# sensitive credentials
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/

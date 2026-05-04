@@ -1228,10 +1228,34 @@ export default function KnowledgeBase() {
           </div>
         </div>
 
-        {/* Hidden trigger for URL dialog - to be replaced with a proper Dialog later if needed, 
-            but for now reusing the existing logic by focusing an input is tricky without the card.
-            Let's add a Dialog for URL input instead.
-        */}
+        {/* Knowledge Stats Bar */}
+        {knowledgeStats.totalEntries > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-sm font-semibold">
+              <BarChart3 className="h-3.5 w-3.5" />
+              {knowledgeStats.totalEntries} {knowledgeStats.totalEntries === 1 ? 'article' : 'articles'}
+            </span>
+            <span className="h-4 w-px bg-slate-200 mx-0.5" />
+            {Object.entries(knowledgeStats.categoryCounts)
+              .sort(([, a], [, b]) => b - a)
+              .map(([category, count]) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(selectedCategory === category ? null : (category as any))}
+                  title={`Filter by ${category}`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${
+                    selectedCategory === category
+                      ? 'border-indigo-400 bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-300'
+                      : `${getCategoryColor(category)} border-transparent hover:border-slate-300`
+                  }`}
+                >
+                  {category}
+                  <span className="font-bold tabular-nums">{count}</span>
+                </button>
+              ))}
+          </div>
+        )}
+
         {/* URL Input Dialog - Controlled */}
         <Dialog open={isAddUrlOpen} onOpenChange={setIsAddUrlOpen}>
           <DialogContent>
