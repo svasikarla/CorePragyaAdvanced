@@ -218,7 +218,7 @@ describe("startTechResearchJob", () => {
   it("creates 6 evaluator agents for tier2", async () => {
     await startTechResearchJob(CONFIG, "user-1");
     const jobArg = mockSet.mock.calls[0]?.[1] as { agents: { id: string }[] };
-    const evaluators = jobArg.agents.filter((a) => a.startsWith ? false : a.id.startsWith("evaluator-"));
+    const evaluators = jobArg.agents.filter((a: { id: string }) => a.id.startsWith("evaluator-"));
     const evaluatorAgents = jobArg.agents.filter((a) => a.id.startsWith("evaluator-"));
     expect(evaluatorAgents).toHaveLength(6);
   });

@@ -43,6 +43,8 @@ export default function AppHeader({ user }: AppHeaderProps) {
     { name: "Subscriptions", href: "/knowledge-base/subscriptions" },
     { name: "Research", href: "/research" },
     { name: "Tech Research", href: "/tech-research" },
+    { name: "Content Studio", href: "/content-creation" },
+    { name: "Automations", href: "/automations" },
   ]
 
   return (

@@ -31,7 +31,7 @@ import { GET } from "@/app/api/tech-research/jobs/route";
 import { NextRequest } from "next/server";
 
 function makeRequest(params: Record<string, string> = {}, token = "tok") {
-  const req = new NextRequest() as unknown as { headers: Map<string, string>; nextUrl: { searchParams: URLSearchParams } };
+  const req = new NextRequest("http://localhost") as unknown as { headers: Map<string, string>; nextUrl: { searchParams: URLSearchParams } };
   req.headers = new Map([["authorization", `Bearer ${token}`]]);
   req.nextUrl = { searchParams: new URLSearchParams(params) };
   return req as unknown as import("next/server").NextRequest;

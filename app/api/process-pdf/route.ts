@@ -327,6 +327,24 @@ export async function POST(request: Request) {
         outputTokens
       );
 
+      // Fire automation trigger in the background (non-blocking)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+      fetch(`${baseUrl}/api/automations/trigger`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.CRON_SECRET ?? "internal"}`,
+        },
+        body: JSON.stringify({
+          entryId: data.id,
+          userId: user.id,
+          sourceType: "pdf",
+          category: aiContent.category || "Documents",
+          title: fileName,
+          summary: aiContent.summary_text ?? "",
+        }),
+      }).catch((e: Error) => console.error("[process-pdf] automation trigger failed:", e.message));
+
       return NextResponse.json({ success: true, data });
     } catch (error) {
       const dbError = error as Error;

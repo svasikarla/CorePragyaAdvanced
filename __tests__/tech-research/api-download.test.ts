@@ -54,7 +54,7 @@ import { NextRequest } from "next/server";
 const MOCK_REPORT = { requirement: "Test", generated_at: new Date().toISOString() };
 
 function makeRequest(params: Record<string, string> = {}, token = "tok") {
-  const req = new NextRequest() as unknown as {
+  const req = new NextRequest("http://localhost") as unknown as {
     nextUrl: { searchParams: URLSearchParams };
     headers: Map<string, string>;
   };

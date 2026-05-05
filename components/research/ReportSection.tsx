@@ -1,27 +1,56 @@
 "use client";
 
+import { MessageSquarePlus } from "lucide-react";
 import type { ReportSection as Section } from "@/types/research";
 
 interface Props {
   section: Section;
+  onRefine?: (prompt: string) => void;
 }
 
-export default function ReportSection({ section }: Props) {
+export default function ReportSection({ section, onRefine }: Props) {
+  function handleRefine() {
+    if (!onRefine) return;
+    const prompt =
+      `Let's explore the section "${section.title}" in more depth.\n\n` +
+      `Core assertion: ${section.assertion}\n\n` +
+      `Can you elaborate on this, provide additional context, or suggest what further research would be most valuable here?`;
+    onRefine(prompt);
+  }
+
   return (
     <div
-      className="rounded-lg p-5 space-y-3"
+      className="group rounded-lg p-5 space-y-3 relative"
       style={{
         backgroundColor: "var(--cp-research-surface)",
         border: "1px solid var(--cp-research-border)",
       }}
     >
-      {/* Section title */}
-      <h3
-        className="text-base font-semibold"
-        style={{ color: "var(--cp-research-accent)" }}
-      >
-        {section.title}
-      </h3>
+      {/* Section title row */}
+      <div className="flex items-start justify-between gap-3">
+        <h3
+          className="text-base font-semibold flex-1"
+          style={{ color: "var(--cp-research-accent)" }}
+        >
+          {section.title}
+        </h3>
+
+        {onRefine && (
+          <button
+            onClick={handleRefine}
+            title="Explore this section in the chat"
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            style={{
+              color: "var(--cp-research-accent)",
+              border: "1px solid var(--cp-research-border)",
+              backgroundColor: "var(--cp-research-panel)",
+            }}
+          >
+            <MessageSquarePlus size={12} />
+            Explore
+          </button>
+        )}
+      </div>
 
       {/* Assertion */}
       <p

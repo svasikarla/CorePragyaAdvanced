@@ -314,6 +314,24 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'No data returned from database' }, { status: 500 });
       }
 
+      // Fire automation trigger in the background (non-blocking)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+      fetch(`${baseUrl}/api/automations/trigger`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.CRON_SECRET ?? "internal"}`,
+        },
+        body: JSON.stringify({
+          entryId: data.id,
+          userId: user.id,
+          sourceType: "url",
+          category: aiContent.category,
+          title: title,
+          summary: aiContent.summary_text ?? "",
+        }),
+      }).catch((e: Error) => console.error("[process-url] automation trigger failed:", e.message));
+
       return NextResponse.json({ success: true, data });
     } catch (error) {
       const dbError = error as Error;

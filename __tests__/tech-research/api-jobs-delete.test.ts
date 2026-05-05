@@ -31,7 +31,7 @@ import { DELETE } from "@/app/api/tech-research/jobs/[id]/route";
 import { NextRequest } from "next/server";
 
 function makeRequest(token = "tok") {
-  const req = new NextRequest() as unknown as { headers: Map<string, string> };
+  const req = new NextRequest("http://localhost") as unknown as { headers: Map<string, string> };
   req.headers = new Map([["authorization", `Bearer ${token}`]]);
   return req as unknown as import("next/server").NextRequest;
 }

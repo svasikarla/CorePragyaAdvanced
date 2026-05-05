@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import {
@@ -11,10 +11,12 @@ import {
   AlertCircle,
   Brain,
   ChevronRight,
+  FileDown,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import ReportSection from "@/components/research/ReportSection";
 import SourceIndex from "@/components/research/SourceIndex";
+import ReportChatPanel, { type ReportChatPanelHandle } from "@/components/research/ReportChatPanel";
 import { reportToMarkdown } from "@/lib/research/export/markdown";
 import type { ResearchJob } from "@/types/research";
 
@@ -43,15 +45,16 @@ const RESEARCH_THEME: React.CSSProperties = {
 export default function JobDetailClient({ job, accessToken }: Props) {
   const [view, setView] = useState<"rendered" | "raw">("rendered");
   const [downloading, setDownloading] = useState(false);
+  const [downloadingWithChat, setDownloadingWithChat] = useState(false);
 
+  const chatRef = useRef<ReportChatPanelHandle>(null);
   const report = job.report;
 
+  // ── Download original report ───────────────────────────────────────────────
   async function handleDownload() {
     setDownloading(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ?? accessToken;
       if (!token) return;
 
@@ -75,6 +78,46 @@ export default function JobDetailClient({ job, accessToken }: Props) {
       setDownloading(false);
     }
   }
+
+  // ── Download report + chat appendix ───────────────────────────────────────
+  const handleExportWithChat = useCallback((appendixMd: string) => {
+    if (!report) return;
+    setDownloadingWithChat(true);
+    try {
+      const reportMd = reportToMarkdown(report);
+      const combined = `${reportMd}\n\n---\n\n${appendixMd}`;
+      const blob = new Blob([combined], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `research-with-chat-${job.id}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingWithChat(false);
+    }
+  }, [report, job.id]);
+
+  // ── Handle "Explore" click on a section ───────────────────────────────────
+  const handleRefineSection = useCallback((prompt: string) => {
+    chatRef.current?.openWithPrompt(prompt);
+  }, []);
+
+  // ── Starter prompts derived from the report ────────────────────────────────
+  const starterPrompts = report
+    ? [
+        `What is the single most important insight from this report on "${report.topic}"?`,
+        report.gaps_limitations.length > 0
+          ? `The report identified these gaps: ${report.gaps_limitations[0]}. What research would address them?`
+          : `What aspects of "${report.topic}" does this report not cover?`,
+        report.recommended_actions.length > 0
+          ? `Can you help me implement this recommendation: "${report.recommended_actions[0]}"?`
+          : `What actions should I take based on the report's conclusions?`,
+        report.contradictions_caveats
+          ? `The report noted these caveats: "${report.contradictions_caveats.slice(0, 120)}…" — can you explain further?`
+          : `Are there counterarguments to the report's main conclusions?`,
+      ]
+    : [];
 
   return (
     <div style={RESEARCH_THEME} className="min-h-screen bg-slate-50">
@@ -125,73 +168,125 @@ export default function JobDetailClient({ job, accessToken }: Props) {
         {!report ? (
           <NoReport job={job} />
         ) : (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1">
-                {(["rendered", "raw"] as const).map((v) => (
+          <>
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex gap-1">
+                  {(["rendered", "raw"] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setView(v)}
+                      className="px-3 py-1.5 text-xs rounded font-medium"
+                      style={{
+                        backgroundColor:
+                          view === v
+                            ? "var(--cp-research-accent)"
+                            : "var(--cp-research-panel)",
+                        color:
+                          view === v
+                            ? "#ffffff"
+                            : "var(--cp-research-text-secondary)",
+                        border: "1px solid var(--cp-research-border)",
+                      }}
+                    >
+                      {v === "rendered" ? "Rendered" : "Raw Markdown"}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Export with chat appendix */}
                   <button
-                    key={v}
-                    onClick={() => setView(v)}
-                    className="px-3 py-1.5 text-xs rounded font-medium"
+                    onClick={() => {
+                      // Trigger chat export from the panel — opens chat if needed
+                      if (!chatRef.current?.isOpen) {
+                        chatRef.current?.openWithPrompt("");
+                        setTimeout(() => {
+                          document
+                            .querySelector<HTMLButtonElement>("[data-export-appendix]")
+                            ?.click();
+                        }, 300);
+                      }
+                    }}
+                    disabled={downloadingWithChat}
+                    title="Download report + chat exploration as Markdown"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-opacity disabled:opacity-50"
                     style={{
-                      backgroundColor:
-                        view === v
-                          ? "var(--cp-research-accent)"
-                          : "var(--cp-research-panel)",
-                      color:
-                        view === v
-                          ? "#ffffff"
-                          : "var(--cp-research-text-secondary)",
                       border: "1px solid var(--cp-research-border)",
+                      color: "var(--cp-research-text-secondary)",
+                      backgroundColor: "var(--cp-research-panel)",
                     }}
                   >
-                    {v === "rendered" ? "Rendered" : "Raw Markdown"}
+                    {downloadingWithChat ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <FileDown size={12} />
+                    )}
+                    + Chat
                   </button>
-                ))}
+
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="flex items-center gap-2 px-4 py-1.5 rounded text-sm font-medium transition-opacity disabled:opacity-50"
+                    style={{
+                      backgroundColor: "var(--cp-research-accent)",
+                      color: "#ffffff",
+                    }}
+                  >
+                    {downloading ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Download size={14} />
+                    )}
+                    Download {FORMAT_LABELS[job.config.format] ?? ""}
+                  </button>
+                </div>
               </div>
 
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="flex items-center gap-2 px-4 py-2 rounded text-sm font-medium transition-opacity disabled:opacity-50"
-                style={{
-                  backgroundColor: "var(--cp-research-accent)",
-                  color: "#ffffff",
-                }}
-              >
-                {downloading ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Download size={14} />
-                )}
-                Download {FORMAT_LABELS[job.config.format] ?? ""}
-              </button>
+              {view === "rendered" ? (
+                <RenderedReport report={report} onRefineSection={handleRefineSection} />
+              ) : (
+                <div
+                  className="rounded-lg p-5 prose max-w-none text-sm overflow-auto"
+                  style={{
+                    backgroundColor: "var(--cp-research-panel)",
+                    border: "1px solid var(--cp-research-border)",
+                    color: "var(--cp-research-text)",
+                    fontFamily: "ui-monospace, monospace",
+                  }}
+                >
+                  <ReactMarkdown>{reportToMarkdown(report)}</ReactMarkdown>
+                </div>
+              )}
             </div>
 
-            {view === "rendered" ? (
-              <RenderedReport report={report} />
-            ) : (
-              <div
-                className="rounded-lg p-5 prose max-w-none text-sm overflow-auto"
-                style={{
-                  backgroundColor: "var(--cp-research-panel)",
-                  border: "1px solid var(--cp-research-border)",
-                  color: "var(--cp-research-text)",
-                  fontFamily: "ui-monospace, monospace",
-                }}
-              >
-                <ReactMarkdown>{reportToMarkdown(report)}</ReactMarkdown>
-              </div>
-            )}
-          </div>
+            {/* Chat panel — always present below the report */}
+            <ReportChatPanel
+              ref={chatRef}
+              jobId={job.id}
+              topic={job.config.topic}
+              accessToken={accessToken}
+              starterPrompts={starterPrompts}
+              onExportAppendix={handleExportWithChat}
+            />
+          </>
         )}
       </div>
     </div>
   );
 }
 
-function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]> }) {
+// ── Rendered report ────────────────────────────────────────────────────────────
+
+function RenderedReport({
+  report,
+  onRefineSection,
+}: {
+  report: NonNullable<ResearchJob["report"]>;
+  onRefineSection: (prompt: string) => void;
+}) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -202,15 +297,11 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
           border: "1px solid var(--cp-research-border)",
         }}
       >
-        <h2
-          className="text-xl font-bold"
-          style={{ color: "var(--cp-research-text)" }}
-        >
+        <h2 className="text-xl font-bold" style={{ color: "var(--cp-research-text)" }}>
           {report.topic}
         </h2>
         <p className="text-xs" style={{ color: "var(--cp-research-muted)" }}>
-          {report.model_used} · {new Date(report.generated_at).toLocaleString()}{" "}
-          · {report.config.audience}
+          {report.model_used} · {new Date(report.generated_at).toLocaleString()} · {report.config.audience}
         </p>
       </div>
 
@@ -228,18 +319,19 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
         >
           Executive Summary
         </p>
-        <p
-          className="text-sm leading-relaxed"
-          style={{ color: "var(--cp-research-text)" }}
-        >
+        <p className="text-sm leading-relaxed" style={{ color: "var(--cp-research-text)" }}>
           {report.executive_summary}
         </p>
       </div>
 
-      {/* Sections */}
+      {/* Sections — each has an Explore button */}
       <div className="space-y-4">
         {report.sections.map((section, i) => (
-          <ReportSection key={i} section={section} />
+          <ReportSection
+            key={i}
+            section={section}
+            onRefine={onRefineSection}
+          />
         ))}
       </div>
 
@@ -252,10 +344,7 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
             border: "1px solid var(--cp-research-border)",
           }}
         >
-          <h3
-            className="text-sm font-semibold mb-3"
-            style={{ color: "var(--cp-research-accent)" }}
-          >
+          <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--cp-research-accent)" }}>
             Cross-Cutting Insights
           </h3>
           <ul className="space-y-1.5">
@@ -265,9 +354,7 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
                   className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
                   style={{ backgroundColor: "var(--cp-research-accent)" }}
                 />
-                <span style={{ color: "var(--cp-research-text)" }}>
-                  {insight}
-                </span>
+                <span style={{ color: "var(--cp-research-text)" }}>{insight}</span>
               </li>
             ))}
           </ul>
@@ -283,10 +370,7 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
             border: "1px solid var(--cp-research-border)",
           }}
         >
-          <h3
-            className="text-sm font-semibold mb-3"
-            style={{ color: "var(--cp-research-accent)" }}
-          >
+          <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--cp-research-accent)" }}>
             Recommended Actions
           </h3>
           <ol className="space-y-2">
@@ -294,16 +378,11 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
               <li key={i} className="flex items-start gap-3 text-sm">
                 <span
                   className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                  style={{
-                    backgroundColor: "var(--cp-research-accent)",
-                    color: "#ffffff",
-                  }}
+                  style={{ backgroundColor: "var(--cp-research-accent)", color: "#ffffff" }}
                 >
                   {i + 1}
                 </span>
-                <span style={{ color: "var(--cp-research-text)" }}>
-                  {action}
-                </span>
+                <span style={{ color: "var(--cp-research-text)" }}>{action}</span>
               </li>
             ))}
           </ol>
@@ -331,19 +410,12 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
           )}
           {report.gaps_limitations.length > 0 && (
             <>
-              <h3
-                className="text-sm font-semibold mt-2"
-                style={{ color: "#d97706" }}
-              >
+              <h3 className="text-sm font-semibold mt-2" style={{ color: "#d97706" }}>
                 Gaps & Limitations
               </h3>
               <ul className="space-y-1">
                 {report.gaps_limitations.map((g, i) => (
-                  <li
-                    key={i}
-                    className="text-sm"
-                    style={{ color: "var(--cp-research-text)" }}
-                  >
+                  <li key={i} className="text-sm" style={{ color: "var(--cp-research-text)" }}>
                     • {g}
                   </li>
                 ))}
@@ -358,15 +430,15 @@ function RenderedReport({ report }: { report: NonNullable<ResearchJob["report"]>
   );
 }
 
+// ── No report state ────────────────────────────────────────────────────────────
+
 function NoReport({ job }: { job: ResearchJob }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-10 shadow-sm flex flex-col items-center text-center">
       <div className="p-4 rounded-full bg-slate-100 mb-4">
         <AlertCircle size={28} className="text-slate-400" />
       </div>
-      <h3 className="text-sm font-semibold text-slate-700 mb-1">
-        No report available
-      </h3>
+      <h3 className="text-sm font-semibold text-slate-700 mb-1">No report available</h3>
       <p className="text-xs text-slate-400 mb-1 max-w-xs">
         This job{" "}
         {job.status === "error"
@@ -381,10 +453,7 @@ function NoReport({ job }: { job: ResearchJob }) {
         </p>
       )}
       {(job.status === "running" || job.status === "queued") && (
-        <Link
-          href="/research"
-          className="mt-4 text-xs font-medium text-indigo-600 hover:underline"
-        >
+        <Link href="/research" className="mt-4 text-xs font-medium text-indigo-600 hover:underline">
           Monitor live progress →
         </Link>
       )}

@@ -123,7 +123,7 @@ describe("techReportToHTML", () => {
     };
     const xssHtml = await techReportToHTML(xssReport);
     // The <title> uses escapeHtml — raw tags must not appear unescaped there
-    const titleMatch = xssHtml.match(/<title>(.*?)<\/title>/s);
+    const titleMatch = xssHtml.match(/<title>([\s\S]*?)<\/title>/);
     expect(titleMatch).not.toBeNull();
     const titleContent = titleMatch![1]!;
     expect(titleContent).not.toContain("<b>");
