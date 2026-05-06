@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ContentJobCard } from "@/components/content-creation/ContentJobCard";
 import type { ContentJobSummary } from "@/types/content-creation";
-import { Search, PlusCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, PlusCircle, ChevronLeft, ChevronRight, Brain, FileEdit, History } from "lucide-react";
 
 interface Props {
   accessToken: string | null;
@@ -53,6 +53,32 @@ export default function ContentHistoryClient({ accessToken }: Props) {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Breadcrumb header */}
+      <div className="border-b bg-white">
+        <div className="container mx-auto px-4 py-4 flex items-center gap-2">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 transition-colors shrink-0"
+          >
+            <Brain size={14} />
+            Dashboard
+          </Link>
+          <ChevronRight size={14} className="text-slate-300" />
+          <Link
+            href="/content-creation"
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 transition-colors"
+          >
+            <FileEdit size={14} />
+            Content Creation
+          </Link>
+          <ChevronRight size={14} className="text-slate-300" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+            <History size={14} />
+            History
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <div>

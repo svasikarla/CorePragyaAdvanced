@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ContentCreationJob, ContentPiece, Platform } from "@/types/content-creation";
 import { PLATFORM_LABELS, PLATFORM_COLORS } from "@/types/content-creation";
-import { Copy, Check, Download, FileText, Code2, Clock, Hash, Tag } from "lucide-react";
+import { Copy, Check, Download, FileText, Code2, Clock, Hash, Tag, Pencil, X, Save, Loader2 } from "lucide-react";
 
 interface Props {
   job: ContentCreationJob;
@@ -52,12 +52,47 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function PiecePanel({ piece, jobId, accessToken }: { piece: ContentPiece; jobId: string; accessToken: string | null }) {
+interface PiecePanelProps {
+  piece: ContentPiece;
+  jobId: string;
+  accessToken: string | null;
+  onSave: (platform: Platform, newContent: string) => Promise<void>;
+}
+
+function PiecePanel({ piece, jobId, accessToken, onSave }: PiecePanelProps) {
   const [showRaw, setShowRaw] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const meta = piece.metadata;
 
   const downloadUrl = `/api/content-creation/export/${jobId}?platform=${piece.platform}&format=md&token=${encodeURIComponent(accessToken ?? "")}`;
   const downloadHtmlUrl = `/api/content-creation/export/${jobId}?platform=${piece.platform}&format=html&token=${encodeURIComponent(accessToken ?? "")}`;
+
+  function handleStartEdit() {
+    setEditContent(piece.content);
+    setSaveError(null);
+    setIsEditing(true);
+  }
+
+  function handleCancel() {
+    setIsEditing(false);
+    setSaveError(null);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onSave(piece.platform, editContent);
+      setIsEditing(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -115,35 +150,73 @@ function PiecePanel({ piece, jobId, accessToken }: { piece: ContentPiece; jobId:
       )}
 
       {/* Actions bar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <CopyButton text={piece.content} />
-        <button
-          onClick={() => setShowRaw((v) => !v)}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
-        >
-          <Code2 className="h-3.5 w-3.5" />
-          {showRaw ? "Rendered" : "Raw Markdown"}
-        </button>
-        <a
-          href={downloadUrl}
-          download
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
-        >
-          <Download className="h-3.5 w-3.5" />
-          .MD
-        </a>
-        <a
-          href={downloadHtmlUrl}
-          download
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
-        >
-          <Download className="h-3.5 w-3.5" />
-          .HTML
-        </a>
-      </div>
+      {!isEditing ? (
+        <div className="flex items-center gap-2 flex-wrap">
+          <CopyButton text={piece.content} />
+          <button
+            onClick={() => setShowRaw((v) => !v)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
+          >
+            <Code2 className="h-3.5 w-3.5" />
+            {showRaw ? "Rendered" : "Raw Markdown"}
+          </button>
+          <a
+            href={downloadUrl}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            .MD
+          </a>
+          <a
+            href={downloadHtmlUrl}
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            .HTML
+          </a>
+          <button
+            onClick={handleStartEdit}
+            className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors ml-auto"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+          <button
+            onClick={handleCancel}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 disabled:opacity-50 transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+            Cancel
+          </button>
+          {saveError && (
+            <span className="text-xs text-red-600">{saveError}</span>
+          )}
+        </div>
+      )}
 
-      {/* Content */}
-      {showRaw ? (
+      {/* Content / Edit area */}
+      {isEditing ? (
+        <textarea
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+          rows={24}
+          className="w-full rounded-lg border border-violet-300 bg-white p-4 text-sm font-mono leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
+        />
+      ) : showRaw ? (
         <pre className="rounded-lg bg-slate-900 text-slate-200 p-4 text-xs overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
           {piece.content}
         </pre>
@@ -187,7 +260,7 @@ function renderMarkdown(md: string): string {
 }
 
 export function ContentPlatformViewer({ job, accessToken }: Props) {
-  const pieces = job.content_pieces ?? [];
+  const [pieces, setPieces] = useState<ContentPiece[]>(job.content_pieces ?? []);
   const [activePlatform, setActivePlatform] = useState<Platform>(
     pieces[0]?.platform ?? job.config.targetPlatforms[0]
   );
@@ -204,6 +277,25 @@ export function ContentPlatformViewer({ job, accessToken }: Props) {
 
   const allDownloadUrl = `/api/content-creation/export/${job.id}?format=md&token=${encodeURIComponent(accessToken ?? "")}`;
   const allDownloadHtmlUrl = `/api/content-creation/export/${job.id}?format=html&token=${encodeURIComponent(accessToken ?? "")}`;
+
+  async function handleSavePiece(platform: Platform, newContent: string) {
+    const updatedPieces = pieces.map((p) =>
+      p.platform === platform ? { ...p, content: newContent } : p
+    );
+    const res = await fetch(`/api/content-creation/jobs/${job.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ content_pieces: updatedPieces }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error ?? "Save failed");
+    }
+    setPieces(updatedPieces);
+  }
 
   return (
     <div className="space-y-4">
@@ -251,7 +343,7 @@ export function ContentPlatformViewer({ job, accessToken }: Props) {
       {activePiece && (
         <div>
           <h3 className="text-base font-semibold text-slate-800 mb-3">{activePiece.title}</h3>
-          <PiecePanel piece={activePiece} jobId={job.id} accessToken={accessToken} />
+          <PiecePanel piece={activePiece} jobId={job.id} accessToken={accessToken} onSave={handleSavePiece} />
         </div>
       )}
     </div>
