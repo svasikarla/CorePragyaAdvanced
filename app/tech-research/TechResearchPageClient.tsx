@@ -7,10 +7,13 @@ import { TechResearchForm } from "@/components/tech-research/TechResearchForm";
 import { AgentMonitor } from "@/components/tech-research/AgentMonitor";
 import { TechReportViewer } from "@/components/tech-research/TechReportViewer";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import AppLayout from "@/components/layout/AppLayout";
 import { Cpu, RotateCcw, History, Brain, ChevronRight } from "lucide-react";
 
 interface Props {
   accessToken: string | null;
+  user?: any;
 }
 
 const TAB_LABELS = {
@@ -19,7 +22,7 @@ const TAB_LABELS = {
   report: "Report",
 } as const;
 
-export default function TechResearchPageClient({ accessToken }: Props) {
+export default function TechResearchPageClient({ accessToken, user }: Props) {
   const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId } =
     useTechResearchStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -64,6 +67,7 @@ export default function TechResearchPageClient({ accessToken }: Props) {
   const canViewReport = job?.status === "done" && job.report;
 
   return (
+    <AppLayout user={user}>
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="border-b bg-white">
@@ -71,35 +75,37 @@ export default function TechResearchPageClient({ accessToken }: Props) {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-sky-600 transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
             >
               <Brain size={14} />
               Dashboard
             </Link>
             <ChevronRight size={14} className="text-slate-300" />
             <div className="flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-sky-500" />
-              <span className="font-semibold text-slate-800">Technical Research</span>
+              <div className="p-2 rounded-lg bg-indigo-50">
+                <Cpu className="h-5 w-5 text-indigo-600" />
+              </div>
+              <h1 className="font-display font-bold text-slate-800">Technical Research</h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             {job && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={resetJob}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 New Research
-              </button>
+              </Button>
             )}
-            <Link
-              href="/tech-research/history"
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-sky-300 hover:text-sky-600 transition-colors"
-            >
-              <History className="h-3.5 w-3.5" />
-              History
-            </Link>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/tech-research/history">
+                <History className="h-3.5 w-3.5" />
+                History
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -115,7 +121,7 @@ export default function TechResearchPageClient({ accessToken }: Props) {
                   disabled={disabled}
                   className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
                     activeTab === tab
-                      ? "border-sky-500 text-sky-600"
+                      ? "border-indigo-600 text-indigo-600"
                       : disabled
                       ? "border-transparent text-slate-300 cursor-not-allowed"
                       : "border-transparent text-slate-500 hover:text-slate-700"
@@ -150,5 +156,6 @@ export default function TechResearchPageClient({ accessToken }: Props) {
         )}
       </div>
     </div>
+    </AppLayout>
   );
 }

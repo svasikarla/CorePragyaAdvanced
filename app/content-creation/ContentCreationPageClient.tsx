@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import AppLayout from "@/components/layout/AppLayout";
 import { useContentCreationStore } from "@/store/content-creation-store";
 import { useContentCreationSSE } from "@/hooks/use-content-creation-sse";
 import { ContentCreationForm } from "@/components/content-creation/ContentCreationForm";
@@ -11,6 +13,7 @@ import { Brain, ChevronRight, FileEdit, RotateCcw, History } from "lucide-react"
 
 interface Props {
   accessToken: string | null;
+  user?: any;
 }
 
 const TAB_LABELS = {
@@ -19,7 +22,7 @@ const TAB_LABELS = {
   content: "Content",
 } as const;
 
-export default function ContentCreationPageClient({ accessToken }: Props) {
+export default function ContentCreationPageClient({ accessToken, user }: Props) {
   const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId } =
     useContentCreationStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -64,6 +67,7 @@ export default function ContentCreationPageClient({ accessToken }: Props) {
   const canViewContent = job?.status === "done" && job.content_pieces?.length;
 
   return (
+    <AppLayout user={user}>
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="border-b bg-white">
@@ -71,35 +75,33 @@ export default function ContentCreationPageClient({ accessToken }: Props) {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
             >
               <Brain size={14} />
               Dashboard
             </Link>
             <ChevronRight size={14} className="text-slate-300" />
             <div className="flex items-center gap-2">
-              <FileEdit className="h-5 w-5 text-violet-500" />
-              <span className="font-semibold text-slate-800">Content Creation</span>
+              <div className="p-2 rounded-lg bg-indigo-50">
+                <FileEdit className="h-5 w-5 text-indigo-600" />
+              </div>
+              <h1 className="font-display font-bold text-slate-800">Content Creation</h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             {job && (
-              <button
-                onClick={resetJob}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
-              >
+              <Button variant="outline" size="sm" onClick={resetJob}>
                 <RotateCcw className="h-3.5 w-3.5" />
                 New Content
-              </button>
+              </Button>
             )}
-            <Link
-              href="/content-creation/history"
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-violet-300 hover:text-violet-600 transition-colors"
-            >
-              <History className="h-3.5 w-3.5" />
-              History
-            </Link>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/content-creation/history">
+                <History className="h-3.5 w-3.5" />
+                History
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -115,7 +117,7 @@ export default function ContentCreationPageClient({ accessToken }: Props) {
                   disabled={disabled}
                   className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
                     activeTab === tab
-                      ? "border-violet-500 text-violet-600"
+                      ? "border-indigo-600 text-indigo-600"
                       : disabled
                       ? "border-transparent text-slate-300 cursor-not-allowed"
                       : "border-transparent text-slate-500 hover:text-slate-700"
@@ -146,5 +148,6 @@ export default function ContentCreationPageClient({ accessToken }: Props) {
         )}
       </div>
     </div>
+    </AppLayout>
   );
 }

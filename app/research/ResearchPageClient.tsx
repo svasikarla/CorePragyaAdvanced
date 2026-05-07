@@ -5,10 +5,13 @@ import ResearchForm from "@/components/research/ResearchForm";
 import AgentMonitor from "@/components/research/AgentMonitor";
 import ReportViewer from "@/components/research/ReportViewer";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import AppLayout from "@/components/layout/AppLayout";
 import { FlaskConical, RotateCcw, History, Brain, ChevronRight } from "lucide-react";
 
 interface Props {
   accessToken: string | null;
+  user?: any;
 }
 
 // ── CorePragya light-theme CSS variables for the research module ──────────────
@@ -34,11 +37,12 @@ const TAB_LABELS = {
   report: "Report",
 } as const;
 
-export default function ResearchPageClient({ accessToken }: Props) {
+export default function ResearchPageClient({ accessToken, user }: Props) {
   const { activeTab, setActiveTab, job, resetJob } = useResearchStore();
 
   return (
-    <div style={RESEARCH_THEME} className="min-h-screen bg-slate-50">
+    <AppLayout user={user}>
+    <div className="min-h-screen bg-slate-50">
       {/* Page header */}
       <div className="border-b bg-white">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -55,7 +59,7 @@ export default function ResearchPageClient({ accessToken }: Props) {
               <FlaskConical className="h-5 w-5 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-slate-800">
+              <h1 className="font-display font-bold text-slate-800">
                 Research Intelligence
               </h1>
               <p className="text-xs text-slate-500">
@@ -65,22 +69,18 @@ export default function ResearchPageClient({ accessToken }: Props) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/research/history"
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100"
-            >
-              <History size={13} />
-              History
-            </Link>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/research/history">
+                <History size={13} />
+                History
+              </Link>
+            </Button>
 
             {job && (
-              <button
-                onClick={resetJob}
-                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100"
-              >
+              <Button variant="outline" size="sm" onClick={resetJob}>
                 <RotateCcw size={13} />
                 New research
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function ResearchPageClient({ accessToken }: Props) {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div style={RESEARCH_THEME} className="container mx-auto px-4 py-8 max-w-4xl">
         {activeTab === "config" && (
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-700 mb-5">
@@ -153,5 +153,6 @@ export default function ResearchPageClient({ accessToken }: Props) {
         )}
       </div>
     </div>
+    </AppLayout>
   );
 }

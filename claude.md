@@ -1,3 +1,7 @@
+## Prompt Handling
+Before executing any ambiguous or broad task, invoke the `prompt-refiner` 
+agent to sharpen the prompt first, then proceed with the refined version.
+
 # CorePragyaAdvanced
 
 ## Project Overview

@@ -16,5 +16,7 @@ export default async function ContentCreationPage() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) redirect("/login");
 
-  return <ContentCreationPageClient accessToken={session.access_token} />;
+  const { data: { user } } = await supabase.auth.getUser();
+
+  return <ContentCreationPageClient accessToken={session.access_token} user={user} />;
 }

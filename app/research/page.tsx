@@ -30,5 +30,5 @@ export default async function ResearchPage() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  return <ResearchPageClient accessToken={session?.access_token ?? null} />;
+  return <ResearchPageClient accessToken={session?.access_token ?? null} user={user} />;
 }

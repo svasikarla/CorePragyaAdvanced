@@ -18,5 +18,5 @@ export default async function TechResearchPage() {
   if (!user) redirect("/login");
 
   const { data: { session } } = await supabase.auth.getSession();
-  return <TechResearchPageClient accessToken={session?.access_token ?? null} />;
+  return <TechResearchPageClient accessToken={session?.access_token ?? null} user={user} />;
 }

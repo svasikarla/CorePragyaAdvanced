@@ -7,7 +7,7 @@ import {
   ArrowRight, Brain, Search, MessageSquare, Mail, FileText,
   Globe, Sparkles, TrendingUp, Zap, BookOpen, Database,
   Check, ChevronRight, Star, Shield, Clock, Users,
-  Newspaper, Rss, BarChart3, Flame
+  Newspaper, Rss, BarChart3, Flame, PenLine, FlaskConical, Cpu
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -251,7 +251,7 @@ export default function LandingPage() {
                   Everything You Need to Master Your Knowledge
                 </h2>
                 <p className="mx-auto max-w-[700px] text-base text-muted-foreground">
-                  Built with cutting-edge AI technology to help you organize, discover, and stay ahead in your areas of interest.
+                  Built with cutting-edge AI technology to help you organize, discover, research, and create — all from a single platform powered by multi-agent pipelines.
                 </p>
               </div>
             </AnimatedSection>
@@ -382,6 +382,72 @@ export default function LandingPage() {
                   </CardContent>
                 </Card>
               </AnimatedSection>
+
+              {/* Content Creation Studio */}
+              <AnimatedSection delay={0}>
+                <Card className="border-2 border-violet-100 hover:border-violet-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                  <CardContent className="p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 mb-3 group-hover:scale-110 transition-transform">
+                      <PenLine className="h-6 w-6 text-violet-700" />
+                    </div>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Content Creation Studio</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Turn your knowledge into polished content across every platform. A 5-phase multi-agent pipeline drafts, refines, and formats posts for Medium, LinkedIn, Twitter, Substack, Dev.to, and Blog — all in one workflow.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Multi-Agent
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">6 Platforms</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+
+              {/* Research Intelligence */}
+              <AnimatedSection delay={100}>
+                <Card className="border-2 border-teal-100 hover:border-teal-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                  <CardContent className="p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 mb-3 group-hover:scale-110 transition-transform">
+                      <FlaskConical className="h-6 w-6 text-teal-700" />
+                    </div>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Research Intelligence</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Run deep research on any topic with a multi-agent pipeline that searches the web, synthesizes sources, and delivers a structured, exportable report — complete with history tracking.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        <Search className="h-3 w-3 mr-1" />
+                        Web Search
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">Export Report</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+
+              {/* Technical Research */}
+              <AnimatedSection delay={200}>
+                <Card className="border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                  <CardContent className="p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 mb-3 group-hover:scale-110 transition-transform">
+                      <Cpu className="h-6 w-6 text-amber-700" />
+                    </div>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Technical Research Agent</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Evaluate technology choices with an AI agent that analyses requirements, scores candidates, builds a trade-off matrix, and produces an architecture blueprint — so you make decisions backed by data, not guesswork.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        <Brain className="h-3 w-3 mr-1" />
+                        Architecture Blueprint
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">Trade-off Matrix</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
             </div>
 
             {/* Feature Comparison */}
@@ -407,8 +473,8 @@ export default function LandingPage() {
                     <div className="flex justify-center mb-3">
                       <Brain className="h-8 w-8 text-indigo-700 group-hover:scale-110 transition-transform" />
                     </div>
-                    <h4 className="font-semibold mb-2">Multi-Model AI</h4>
-                    <p className="text-sm text-muted-foreground">Powered by Claude, GPT, Groq, and Cohere — the best model for every task</p>
+                    <h4 className="font-semibold mb-2">Multi-Agent Pipelines</h4>
+                    <p className="text-sm text-muted-foreground">Autonomous agents research, write, and evaluate — powered by Claude, GPT, and Groq working in concert</p>
                   </div>
                 </div>
               </div>
