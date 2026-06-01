@@ -76,7 +76,8 @@ export default function ReportViewer() {
 
           {/* Executive summary */}
           <div
-            className="px-5 py-4 rounded-lg"
+            id="rsec-exec"
+            className="px-5 py-4 rounded-lg scroll-mt-24"
             style={{
               backgroundColor: "var(--cp-research-panel)",
               borderLeft: "4px solid var(--cp-research-accent)",
@@ -99,7 +100,9 @@ export default function ReportViewer() {
           {/* Sections */}
           <div className="space-y-4">
             {report.sections.map((section, i) => (
-              <ReportSection key={i} section={section} />
+              <div key={i} id={`rsec-${i}`} className="scroll-mt-24">
+                <ReportSection section={section} />
+              </div>
             ))}
           </div>
 

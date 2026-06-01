@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { MvpDocsJob, MvpDocument, DocType, ConsistencyReport } from "@/types/mvp-docs";
 import { DOC_LABELS, DOC_GROUP, DOC_GROUP_COLORS } from "@/types/mvp-docs";
+import { useMvpDocsStore } from "@/store/mvp-docs-store";
 import {
   Copy, Check, Download, Code2, Pencil, X, Save, Loader2,
   ShieldCheck, ShieldAlert, ShieldQuestion,
@@ -240,9 +241,14 @@ function renderMarkdown(md: string): string {
 
 export function MvpDocsViewer({ job, accessToken, readOnly }: Props) {
   const [documents, setDocuments] = useState<MvpDocument[]>(job.documents ?? []);
-  const [activeDoc, setActiveDoc] = useState<DocType>(
-    documents[0]?.docType ?? job.config.targetDocs[0]
-  );
+  const { activeDocType, setActiveDocType } = useMvpDocsStore();
+
+  // Keep the shared active doc valid for this bundle (the left-rail outline drives it too).
+  useEffect(() => {
+    if (documents.length && (!activeDocType || !documents.some((d) => d.docType === activeDocType))) {
+      setActiveDocType(documents[0].docType);
+    }
+  }, [documents, activeDocType, setActiveDocType]);
 
   if (documents.length === 0) {
     return (
@@ -252,7 +258,7 @@ export function MvpDocsViewer({ job, accessToken, readOnly }: Props) {
     );
   }
 
-  const active = documents.find((d) => d.docType === activeDoc) ?? documents[0];
+  const active = documents.find((d) => d.docType === activeDocType) ?? documents[0];
 
   const allMdUrl = `/api/mvp-docs/export/${job.id}?format=md&token=${encodeURIComponent(accessToken ?? "")}`;
   const allHtmlUrl = `/api/mvp-docs/export/${job.id}?format=html&token=${encodeURIComponent(accessToken ?? "")}`;
@@ -278,8 +284,8 @@ export function MvpDocsViewer({ job, accessToken, readOnly }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Bundle download */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      {/* Bundle download (hidden on xl — the right context panel carries it there) */}
+      <div className="flex items-center justify-between flex-wrap gap-2 xl:hidden">
         <p className="text-sm text-slate-500">{documents.length} document{documents.length !== 1 ? "s" : ""} in this bundle</p>
         <div className="flex gap-2">
           <a href={allMdUrl} download className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
@@ -299,9 +305,9 @@ export function MvpDocsViewer({ job, accessToken, readOnly }: Props) {
         {documents.map((d) => (
           <button
             key={d.docType}
-            onClick={() => setActiveDoc(d.docType)}
+            onClick={() => setActiveDocType(d.docType)}
             className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-200 hover:-translate-y-px ${
-              activeDoc === d.docType
+              activeDocType === d.docType
                 ? `${DOC_GROUP_COLORS[DOC_GROUP[d.docType]]} shadow-sm`
                 : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
             }`}

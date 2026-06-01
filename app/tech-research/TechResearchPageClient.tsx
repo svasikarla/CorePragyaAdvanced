@@ -6,6 +6,8 @@ import { useTechResearchSSE } from "@/hooks/use-tech-research-sse";
 import { TechResearchForm } from "@/components/tech-research/TechResearchForm";
 import { AgentMonitor } from "@/components/tech-research/AgentMonitor";
 import { TechReportViewer } from "@/components/tech-research/TechReportViewer";
+import { TechLeftRail } from "@/components/tech-research/TechLeftRail";
+import { TechRightPanel } from "@/components/tech-research/TechRightPanel";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/layout/AppLayout";
@@ -23,7 +25,7 @@ const TAB_LABELS = {
 } as const;
 
 export default function TechResearchPageClient({ accessToken, user }: Props) {
-  const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId } =
+  const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId, config } =
     useTechResearchStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -135,25 +137,41 @@ export default function TechResearchPageClient({ accessToken, user }: Props) {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        {activeTab === "config" && (
-          <TechResearchForm
-            onSubmit={handleSubmit}
-            accessToken={accessToken}
-            isLoading={isLoading}
-          />
-        )}
+      {/* Content — 3-column shell: sticky context rails flank the main column on xl+ */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto grid max-w-3xl gap-8 xl:max-w-[1500px] xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+          <aside className="hidden xl:block">
+            <div className="sticky top-24">
+              <TechLeftRail activeTab={activeTab} job={job} config={config} />
+            </div>
+          </aside>
 
-        {activeTab === "agents" && <AgentMonitor job={job} />}
+          <main className="min-w-0">
+            {activeTab === "config" && (
+              <TechResearchForm
+                onSubmit={handleSubmit}
+                accessToken={accessToken}
+                isLoading={isLoading}
+              />
+            )}
 
-        {activeTab === "report" && canViewReport && (
-          <TechReportViewer
-            report={job.report!}
-            jobId={jobId!}
-            accessToken={accessToken}
-          />
-        )}
+            {activeTab === "agents" && <AgentMonitor job={job} />}
+
+            {activeTab === "report" && canViewReport && (
+              <TechReportViewer
+                report={job.report!}
+                jobId={jobId!}
+                accessToken={accessToken}
+              />
+            )}
+          </main>
+
+          <aside className="hidden xl:block">
+            <div className="sticky top-24 animate-in fade-in duration-500">
+              <TechRightPanel activeTab={activeTab} job={job} config={config} />
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
     </AppLayout>

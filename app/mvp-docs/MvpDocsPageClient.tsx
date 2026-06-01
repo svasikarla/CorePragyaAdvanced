@@ -9,6 +9,8 @@ import { useMvpDocsSSE } from "@/hooks/use-mvp-docs-sse";
 import { MvpDocsForm } from "@/components/mvp-docs/MvpDocsForm";
 import { MvpDocsAgentMonitor } from "@/components/mvp-docs/MvpDocsAgentMonitor";
 import { MvpDocsViewer } from "@/components/mvp-docs/MvpDocsViewer";
+import { MvpDocsLeftRail } from "@/components/mvp-docs/MvpDocsLeftRail";
+import { MvpDocsRightPanel } from "@/components/mvp-docs/MvpDocsRightPanel";
 import { Brain, ChevronRight, FileStack, RotateCcw, History } from "lucide-react";
 
 interface Props {
@@ -23,7 +25,7 @@ const TAB_LABELS = {
 } as const;
 
 export default function MvpDocsPageClient({ accessToken, user }: Props) {
-  const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId } =
+  const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId, config } =
     useMvpDocsStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -134,28 +136,52 @@ export default function MvpDocsPageClient({ accessToken, user }: Props) {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="container mx-auto px-4 py-8 max-w-3xl">
-          {activeTab === "config" && (
-            <MvpDocsForm
-              key="config"
-              onSubmit={handleSubmit}
-              accessToken={accessToken}
-              isLoading={isLoading}
-            />
-          )}
+        {/* Content — 3-column shell: sticky context rails flank the main column on xl+ */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="mx-auto grid max-w-3xl gap-8 xl:max-w-[1500px] xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+            {/* Left rail */}
+            <aside className="hidden xl:block">
+              <div className="sticky top-24">
+                <MvpDocsLeftRail activeTab={activeTab} job={job} config={config} />
+              </div>
+            </aside>
 
-          {activeTab === "agents" && (
-            <div key="agents" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
-              <MvpDocsAgentMonitor job={job} />
-            </div>
-          )}
+            {/* Main column */}
+            <main className="min-w-0">
+              {activeTab === "config" && (
+                <MvpDocsForm
+                  key="config"
+                  onSubmit={handleSubmit}
+                  accessToken={accessToken}
+                  isLoading={isLoading}
+                />
+              )}
 
-          {activeTab === "documents" && canViewDocs && job && (
-            <div key="documents" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
-              <MvpDocsViewer job={job} accessToken={accessToken} />
-            </div>
-          )}
+              {activeTab === "agents" && (
+                <div key="agents" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+                  <MvpDocsAgentMonitor job={job} />
+                </div>
+              )}
+
+              {activeTab === "documents" && canViewDocs && job && (
+                <div key="documents" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+                  <MvpDocsViewer job={job} accessToken={accessToken} />
+                </div>
+              )}
+            </main>
+
+            {/* Right context panel */}
+            <aside className="hidden xl:block">
+              <div className="sticky top-24 animate-in fade-in duration-500">
+                <MvpDocsRightPanel
+                  activeTab={activeTab}
+                  job={job}
+                  config={config}
+                  accessToken={accessToken}
+                />
+              </div>
+            </aside>
+          </div>
         </div>
       </div>
     </AppLayout>

@@ -90,7 +90,7 @@ export function TechReportViewer({ report, jobId, accessToken }: Props) {
       ) : (
         <div className="space-y-6">
           {/* Verdict */}
-          <div className="rounded-xl bg-sky-50 border border-sky-200 px-5 py-4">
+          <div id="tsec-verdict" className="rounded-xl bg-sky-50 border border-sky-200 px-5 py-4 scroll-mt-24">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-sky-500 mt-0.5 shrink-0" />
               <div>
@@ -103,13 +103,13 @@ export function TechReportViewer({ report, jobId, accessToken }: Props) {
           </div>
 
           {/* Executive Summary */}
-          <section>
+          <section id="tsec-summary" className="scroll-mt-24">
             <h2 className="text-base font-bold text-slate-800 mb-2">Executive Summary</h2>
             <p className="text-sm text-slate-700 leading-relaxed">{report.executive_summary}</p>
           </section>
 
           {/* Requirement Analysis */}
-          <section>
+          <section id="tsec-requirements" className="scroll-mt-24">
             <h2 className="text-base font-bold text-slate-800 mb-3">Requirement Analysis</h2>
             <p className="text-sm text-slate-600 italic mb-3">{report.requirement_analysis.summary}</p>
             <div className="grid gap-2">
@@ -144,20 +144,20 @@ export function TechReportViewer({ report, jobId, accessToken }: Props) {
           </section>
 
           {/* Trade-off Matrix */}
-          <section>
+          <section id="tsec-tradeoff" className="scroll-mt-24">
             <h2 className="text-base font-bold text-slate-800 mb-3">Trade-off Matrix</h2>
             <TradeoffMatrix matrix={report.tradeoff_matrix} />
           </section>
 
           {/* Architecture Blueprint */}
-          <section>
+          <section id="tsec-architecture" className="scroll-mt-24">
             <h2 className="text-base font-bold text-slate-800 mb-3">Architecture Blueprint</h2>
             <ArchitectureBlueprint blueprint={report.architecture_blueprint} />
           </section>
 
           {/* Compatibility Warnings */}
           {report.compatibility_warnings.length > 0 && (
-            <section>
+            <section id="tsec-warnings" className="scroll-mt-24">
               <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 Compatibility Warnings
@@ -178,7 +178,7 @@ export function TechReportViewer({ report, jobId, accessToken }: Props) {
 
           {/* Source Index */}
           {report.source_index.length > 0 && (
-            <section>
+            <section id="tsec-sources" className="scroll-mt-24">
               <h2 className="text-base font-bold text-slate-800 mb-3">Source Index</h2>
               <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <table className="min-w-full text-xs">

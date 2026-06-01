@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ContentCreationJob, ContentPiece, Platform } from "@/types/content-creation";
 import { PLATFORM_LABELS, PLATFORM_COLORS } from "@/types/content-creation";
+import { useContentCreationStore } from "@/store/content-creation-store";
 import { Copy, Check, Download, FileText, Code2, Clock, Hash, Tag, Pencil, X, Save, Loader2 } from "lucide-react";
 
 interface Props {
@@ -261,9 +262,14 @@ function renderMarkdown(md: string): string {
 
 export function ContentPlatformViewer({ job, accessToken }: Props) {
   const [pieces, setPieces] = useState<ContentPiece[]>(job.content_pieces ?? []);
-  const [activePlatform, setActivePlatform] = useState<Platform>(
-    pieces[0]?.platform ?? job.config.targetPlatforms[0]
-  );
+  const { activePlatform, setActivePlatform } = useContentCreationStore();
+
+  // Keep the shared active platform valid for this job (the left-rail outline drives it too).
+  useEffect(() => {
+    if (pieces.length && (!activePlatform || !pieces.some((p) => p.platform === activePlatform))) {
+      setActivePlatform(pieces[0].platform);
+    }
+  }, [pieces, activePlatform, setActivePlatform]);
 
   if (pieces.length === 0) {
     return (

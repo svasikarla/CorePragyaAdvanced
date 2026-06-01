@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { ContentCreationJob } from "@/types/content-creation";
 import { ContentPlatformViewer } from "@/components/content-creation/ContentPlatformViewer";
+import { ContentLeftRail } from "@/components/content-creation/ContentLeftRail";
+import { ContentRightPanel } from "@/components/content-creation/ContentRightPanel";
 import { Brain, ChevronRight, FileEdit, ArrowLeft } from "lucide-react";
 
 interface Props {
@@ -33,33 +35,49 @@ export default function ContentDetailClient({ job, accessToken }: Props) {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Link
-            href="/content-creation/history"
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back
-          </Link>
-          <div>
-            <h1 className="text-lg font-bold text-slate-800 truncate">{job.config.topic}</h1>
-            <p className="text-xs text-slate-400">
-              {job.config.tone} · {job.config.targetAudience || "General audience"} ·{" "}
-              {new Date(job.created_at).toLocaleDateString()}
-            </p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto max-w-3xl xl:max-w-[1500px]">
+          <div className="flex items-center gap-3 mb-6">
+            <Link
+              href="/content-creation/history"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back
+            </Link>
+            <div>
+              <h1 className="text-lg font-bold text-slate-800 truncate">{job.config.topic}</h1>
+              <p className="text-xs text-slate-400">
+                {job.config.tone} · {job.config.targetAudience || "General audience"} ·{" "}
+                {new Date(job.created_at).toLocaleDateString()}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {job.status === "done" && job.content_pieces?.length ? (
-          <ContentPlatformViewer job={job} accessToken={accessToken} />
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-slate-400 text-sm">
-            {job.status === "error"
-              ? `Error: ${job.error ?? "Unknown error"}`
-              : "Content is not available for this job."}
-          </div>
-        )}
+          {job.status === "done" && job.content_pieces?.length ? (
+            <div className="grid gap-8 xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+              <aside className="hidden xl:block">
+                <div className="sticky top-24">
+                  <ContentLeftRail activeTab="content" job={job} config={job.config} />
+                </div>
+              </aside>
+              <main className="min-w-0">
+                <ContentPlatformViewer job={job} accessToken={accessToken} />
+              </main>
+              <aside className="hidden xl:block">
+                <div className="sticky top-24">
+                  <ContentRightPanel activeTab="content" job={job} config={job.config} accessToken={accessToken} />
+                </div>
+              </aside>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-slate-400 text-sm">
+              {job.status === "error"
+                ? `Error: ${job.error ?? "Unknown error"}`
+                : "Content is not available for this job."}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

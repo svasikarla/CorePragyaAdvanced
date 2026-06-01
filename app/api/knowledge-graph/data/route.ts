@@ -20,6 +20,28 @@ function getCategoryColor(category: string): string {
   return colors[category] || colors['Other'];
 }
 
+// Fallback palette so entries without a meaningful category aren't all grey.
+function getSourceTypeColor(sourceType: string | null | undefined): string {
+  const colors: Record<string, string> = {
+    url: '#0ea5e9',
+    web: '#0ea5e9',
+    pdf: '#ef4444',
+    email: '#f59e0b',
+    gmail: '#f59e0b',
+    rss: '#10b981',
+    note: '#8b5cf6',
+    manual: '#8b5cf6',
+  };
+  return colors[(sourceType || '').toLowerCase()] || '#64748b';
+}
+
+// Use the category colour when it's meaningful; otherwise differentiate by source.
+function resolveNodeColor(category: string | null | undefined, sourceType: string | null | undefined): string {
+  const c = category || 'Uncategorized';
+  if (c === 'Uncategorized' || c === 'Other') return getSourceTypeColor(sourceType);
+  return getCategoryColor(c);
+}
+
 export async function GET(request: Request) {
   try {
     // Get authorization header
@@ -110,8 +132,10 @@ export async function GET(request: Request) {
       name: node.title || 'Untitled',
       category: node.category || 'Uncategorized',
       sourceType: node.source_type,
-      val: Math.max(1, (connectionCounts[node.id] || 0) / 2), // Node size based on connections
-      color: getCategoryColor(node.category || 'Uncategorized'),
+      // Node size scales with degree (sqrt keeps hubs prominent without dwarfing the rest);
+      // a min of 2 ensures isolated nodes are still clearly visible.
+      val: Math.min(14, 2 + Math.sqrt(connectionCounts[node.id] || 0) * 1.6),
+      color: resolveNodeColor(node.category, node.source_type),
       connections: connectionCounts[node.id] || 0,
       createdAt: node.created_at,
     })) || [];

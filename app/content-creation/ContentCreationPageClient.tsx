@@ -9,6 +9,8 @@ import { useContentCreationSSE } from "@/hooks/use-content-creation-sse";
 import { ContentCreationForm } from "@/components/content-creation/ContentCreationForm";
 import { ContentAgentMonitor } from "@/components/content-creation/ContentAgentMonitor";
 import { ContentPlatformViewer } from "@/components/content-creation/ContentPlatformViewer";
+import { ContentLeftRail } from "@/components/content-creation/ContentLeftRail";
+import { ContentRightPanel } from "@/components/content-creation/ContentRightPanel";
 import { Brain, ChevronRight, FileEdit, RotateCcw, History } from "lucide-react";
 
 interface Props {
@@ -23,7 +25,7 @@ const TAB_LABELS = {
 } as const;
 
 export default function ContentCreationPageClient({ accessToken, user }: Props) {
-  const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId } =
+  const { activeTab, setActiveTab, job, jobId, resetJob, setJob, setJobId, config } =
     useContentCreationStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -131,21 +133,37 @@ export default function ContentCreationPageClient({ accessToken, user }: Props) 
         </div>
       </div>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        {activeTab === "config" && (
-          <ContentCreationForm
-            onSubmit={handleSubmit}
-            accessToken={accessToken}
-            isLoading={isLoading}
-          />
-        )}
+      {/* Content — 3-column shell: sticky context rails flank the main column on xl+ */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto grid max-w-3xl gap-8 xl:max-w-[1500px] xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+          <aside className="hidden xl:block">
+            <div className="sticky top-24">
+              <ContentLeftRail activeTab={activeTab} job={job} config={config} />
+            </div>
+          </aside>
 
-        {activeTab === "agents" && <ContentAgentMonitor job={job} />}
+          <main className="min-w-0">
+            {activeTab === "config" && (
+              <ContentCreationForm
+                onSubmit={handleSubmit}
+                accessToken={accessToken}
+                isLoading={isLoading}
+              />
+            )}
 
-        {activeTab === "content" && canViewContent && job && (
-          <ContentPlatformViewer job={job} accessToken={accessToken} />
-        )}
+            {activeTab === "agents" && <ContentAgentMonitor job={job} />}
+
+            {activeTab === "content" && canViewContent && job && (
+              <ContentPlatformViewer job={job} accessToken={accessToken} />
+            )}
+          </main>
+
+          <aside className="hidden xl:block">
+            <div className="sticky top-24 animate-in fade-in duration-500">
+              <ContentRightPanel activeTab={activeTab} job={job} config={config} accessToken={accessToken} />
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
     </AppLayout>

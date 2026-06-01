@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, ZoomIn, ZoomOut, Maximize2, Play, Pause, Network, Sparkles } from 'lucide-react';
+import { Loader2, ZoomIn, ZoomOut, Maximize2, Play, Pause, Network, Sparkles, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -52,6 +52,9 @@ export default function KnowledgeGraphPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
+  const [notice, setNotice] = useState<{ type: 'success' | 'error' | 'info'; msg: string } | null>(null);
 
   const graphRef = useRef<any>(null);
   const router = useRouter();
@@ -60,6 +63,13 @@ export default function KnowledgeGraphPage() {
   useEffect(() => {
     fetchGraphData();
   }, []);
+
+  // Auto-dismiss transient notices
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   const fetchGraphData = async () => {
     try {
@@ -123,20 +133,21 @@ export default function KnowledgeGraphPage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate links');
-      }
-
       const result = await response.json();
 
-      if (result.success) {
-        // Refresh graph data
-        await fetchGraphData();
-        alert(`✓ Successfully generated ${result.linksCreated} connections!`);
+      if (!response.ok || result.error) {
+        setNotice({ type: 'error', msg: result.message || result.error || 'Failed to generate connections.' });
+        return;
       }
+
+      await fetchGraphData();
+      setNotice({
+        type: result.linksCreated > 0 ? 'success' : 'info',
+        msg: result.message || `Generated ${result.linksCreated} connections.`,
+      });
     } catch (error) {
       console.error('Error generating links:', error);
-      setError('Failed to generate connections. Please try again.');
+      setNotice({ type: 'error', msg: 'Failed to generate connections. Please try again.' });
     } finally {
       setIsGenerating(false);
     }
@@ -190,6 +201,42 @@ export default function KnowledgeGraphPage() {
     router.push(`/knowledge-base?highlight=${nodeId}`);
   };
 
+  // Categories actually present in the data (drives the interactive legend).
+  const presentCategories = useMemo(() => {
+    const m = new Map<string, string>();
+    graphData.nodes.forEach((n) => { if (!m.has(n.category)) m.set(n.category, n.color); });
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [graphData]);
+
+  // Apply category filtering client-side (empty set = show all).
+  const displayed = useMemo<GraphData>(() => {
+    if (activeCategories.size === 0) return graphData;
+    const nodes = graphData.nodes.filter((n) => activeCategories.has(n.category));
+    const ids = new Set(nodes.map((n) => n.id));
+    const linkId = (e: string | GraphNode) => (typeof e === 'string' ? e : e.id);
+    const links = graphData.links.filter((l) => ids.has(linkId(l.source)) && ids.has(linkId(l.target)));
+    return { nodes, links, stats: graphData.stats };
+  }, [graphData, activeCategories]);
+
+  const focusNode = (term: string) => {
+    const t = term.trim().toLowerCase();
+    if (!t) return;
+    const node = displayed.nodes.find((n) => n.name.toLowerCase().includes(t));
+    if (!node) { setNotice({ type: 'info', msg: `No entry matching "${term}"` }); return; }
+    setSelectedNode(node);
+    if (graphRef.current && view === '2D' && node.x != null && node.y != null) {
+      graphRef.current.centerAt(node.x, node.y, 800);
+      graphRef.current.zoom(2.5, 800);
+    }
+  };
+
+  const toggleCategory = (cat: string) =>
+    setActiveCategories((prev) => {
+      const s = new Set(prev);
+      if (s.has(cat)) s.delete(cat); else s.add(cat);
+      return s;
+    });
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
@@ -239,12 +286,32 @@ export default function KnowledgeGraphPage() {
               Knowledge Graph
             </h1>
             <p className="text-sm text-muted-foreground">
-              {graphData.stats?.displayedNodes || graphData.nodes.length} entries · {' '}
-              {graphData.stats?.displayedLinks || graphData.links.length} connections
+              {displayed.nodes.length}
+              {activeCategories.size > 0 ? ` of ${graphData.nodes.length}` : ''} entries · {' '}
+              {displayed.links.length} connections
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') focusNode(search); }}
+                placeholder="Find an entry…"
+                className="h-9 w-44 rounded-md border border-input bg-background pl-8 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  title="Clear"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -282,6 +349,36 @@ export default function KnowledgeGraphPage() {
           </div>
         </div>
       </div>
+
+      {/* Transient notice */}
+      {notice && (
+        <div
+          className={`border-b ${
+            notice.type === 'success'
+              ? 'bg-green-50 border-green-100'
+              : notice.type === 'error'
+              ? 'bg-red-50 border-red-100'
+              : 'bg-blue-50 border-blue-100'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-sm">
+            <span
+              className={
+                notice.type === 'success'
+                  ? 'text-green-700'
+                  : notice.type === 'error'
+                  ? 'text-red-700'
+                  : 'text-blue-700'
+              }
+            >
+              {notice.msg}
+            </span>
+            <button onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100 shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Graph Controls */}
       <div className="absolute top-24 right-4 z-10 flex flex-col gap-2">
@@ -337,7 +434,7 @@ export default function KnowledgeGraphPage() {
         {view === '2D' ? (
           <ForceGraph2D
             ref={graphRef}
-            graphData={graphData}
+            graphData={displayed}
             nodeLabel="name"
             nodeColor="color"
             nodeVal="val"
@@ -362,8 +459,10 @@ export default function KnowledgeGraphPage() {
               ctx.arc(node.x, node.y, node.val * 2, 0, 2 * Math.PI, false);
               ctx.fill();
 
-              // Draw label if zoomed in enough
-              if (globalScale > 1.5) {
+              // Show labels readily — for well-connected hubs always, and for
+              // everything once slightly zoomed in (was 1.5, which left a blank
+              // dot-cloud at the default fit-zoom).
+              if (globalScale > 0.8 || (node.connections ?? 0) >= 3) {
                 const textWidth = ctx.measureText(label).width;
                 const bckgDimensions = [textWidth + fontSize * 0.4, fontSize * 1.2];
 
@@ -387,7 +486,7 @@ export default function KnowledgeGraphPage() {
         ) : (
           <ForceGraph3D
             ref={graphRef}
-            graphData={graphData}
+            graphData={displayed}
             nodeLabel="name"
             nodeColor="color"
             nodeVal="val"
@@ -399,27 +498,53 @@ export default function KnowledgeGraphPage() {
             backgroundColor="#000000"
           />
         )}
+
+        {/* Zero-links call to action */}
+        {graphData.links.length === 0 && !isGenerating && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <Card className="pointer-events-auto p-5 max-w-sm text-center shadow-lg">
+              <Sparkles className="h-8 w-8 mx-auto mb-2 text-primary" />
+              <h3 className="font-semibold mb-1">No connections yet</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Generate semantic links to reveal how your entries relate to each other.
+              </p>
+              <Button size="sm" onClick={generateLinks}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate Connections
+              </Button>
+            </Card>
+          </div>
+        )}
       </div>
 
-      {/* Legend */}
-      <div className="border-t p-4 bg-card">
-        <div className="flex flex-wrap gap-4 max-w-7xl mx-auto text-sm">
-          <div className="font-semibold mr-2">Categories:</div>
-          {[
-            { name: 'Science', color: '#3b82f6' },
-            { name: 'Technology', color: '#8b5cf6' },
-            { name: 'AI', color: '#ec4899' },
-            { name: 'Business', color: '#f59e0b' },
-            { name: 'Health', color: '#10b981' },
-            { name: 'Education', color: '#06b6d4' },
-            { name: 'Politics', color: '#ef4444' },
-            { name: 'Environment', color: '#84cc16' },
-          ].map(({ name, color }) => (
-            <div key={name} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-              <span>{name}</span>
-            </div>
-          ))}
+      {/* Legend / category filter (reflects categories actually present) */}
+      <div className="border-t p-3 bg-card">
+        <div className="flex flex-wrap items-center gap-2 max-w-7xl mx-auto text-sm">
+          <span className="font-semibold mr-1">Filter:</span>
+          <button
+            onClick={() => setActiveCategories(new Set())}
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+              activeCategories.size === 0 ? 'bg-foreground text-background border-foreground' : 'hover:bg-muted'
+            }`}
+          >
+            All
+          </button>
+          {presentCategories.map(([name, color]) => {
+            const active = activeCategories.has(name);
+            const anyActive = activeCategories.size > 0;
+            return (
+              <button
+                key={name}
+                onClick={() => toggleCategory(name)}
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                  active ? 'border-foreground bg-muted' : anyActive ? 'opacity-50 hover:opacity-100' : 'hover:bg-muted'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                {name}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

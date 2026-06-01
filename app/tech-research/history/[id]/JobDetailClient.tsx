@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { TechReportViewer } from "@/components/tech-research/TechReportViewer";
+import { TechLeftRail } from "@/components/tech-research/TechLeftRail";
+import { TechRightPanel } from "@/components/tech-research/TechRightPanel";
 import type { TechResearchJob } from "@/types/tech-research";
 import { ChevronLeft, Cpu } from "lucide-react";
 
@@ -46,12 +48,26 @@ export default function TechJobDetailClient({ job, accessToken }: Props) {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <TechReportViewer
-          report={job.report}
-          jobId={job.id}
-          accessToken={accessToken}
-        />
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto grid max-w-3xl gap-8 xl:max-w-[1500px] xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+          <aside className="hidden xl:block">
+            <div className="sticky top-24">
+              <TechLeftRail activeTab="report" job={job} config={job.config} />
+            </div>
+          </aside>
+          <main className="min-w-0">
+            <TechReportViewer
+              report={job.report}
+              jobId={job.id}
+              accessToken={accessToken}
+            />
+          </main>
+          <aside className="hidden xl:block">
+            <div className="sticky top-24">
+              <TechRightPanel activeTab="report" job={job} config={job.config} />
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

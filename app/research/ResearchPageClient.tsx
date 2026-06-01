@@ -4,6 +4,8 @@ import { useResearchStore } from "@/store/research-store";
 import ResearchForm from "@/components/research/ResearchForm";
 import AgentMonitor from "@/components/research/AgentMonitor";
 import ReportViewer from "@/components/research/ReportViewer";
+import { ResearchLeftRail } from "@/components/research/ResearchLeftRail";
+import { ResearchRightPanel } from "@/components/research/ResearchRightPanel";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/layout/AppLayout";
@@ -38,7 +40,7 @@ const TAB_LABELS = {
 } as const;
 
 export default function ResearchPageClient({ accessToken, user }: Props) {
-  const { activeTab, setActiveTab, job, resetJob } = useResearchStore();
+  const { activeTab, setActiveTab, job, resetJob, config } = useResearchStore();
 
   return (
     <AppLayout user={user}>
@@ -126,31 +128,47 @@ export default function ResearchPageClient({ accessToken, user }: Props) {
         </div>
       </div>
 
-      {/* Content */}
-      <div style={RESEARCH_THEME} className="container mx-auto px-4 py-8 max-w-4xl">
-        {activeTab === "config" && (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700 mb-5">
-              Research Configuration
-            </h2>
-            <ResearchForm />
-          </div>
-        )}
+      {/* Content — 3-column shell: sticky context rails flank the main column on xl+ */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto grid max-w-4xl gap-8 xl:max-w-[1540px] xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+          <aside className="hidden xl:block">
+            <div className="sticky top-24">
+              <ResearchLeftRail activeTab={activeTab} job={job} config={config} />
+            </div>
+          </aside>
 
-        {activeTab === "agents" && (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700 mb-5">
-              Agent Progress
-            </h2>
-            <AgentMonitor accessToken={accessToken} />
-          </div>
-        )}
+          <main style={RESEARCH_THEME} className="min-w-0">
+            {activeTab === "config" && (
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 className="text-sm font-semibold text-slate-700 mb-5">
+                  Research Configuration
+                </h2>
+                <ResearchForm />
+              </div>
+            )}
 
-        {activeTab === "report" && (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <ReportViewer />
-          </div>
-        )}
+            {activeTab === "agents" && (
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 className="text-sm font-semibold text-slate-700 mb-5">
+                  Agent Progress
+                </h2>
+                <AgentMonitor accessToken={accessToken} />
+              </div>
+            )}
+
+            {activeTab === "report" && (
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <ReportViewer />
+              </div>
+            )}
+          </main>
+
+          <aside className="hidden xl:block">
+            <div className="sticky top-24 animate-in fade-in duration-500">
+              <ResearchRightPanel activeTab={activeTab} job={job} config={config} />
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
     </AppLayout>

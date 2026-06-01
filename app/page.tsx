@@ -7,7 +7,8 @@ import {
   ArrowRight, Brain, Search, MessageSquare, Mail, FileText,
   Globe, Sparkles, TrendingUp, Zap, BookOpen, Database,
   Check, ChevronRight, Star, Shield, Clock, Users,
-  Newspaper, Rss, BarChart3, Flame, PenLine, FlaskConical, Cpu
+  Newspaper, Rss, BarChart3, Flame, PenLine, FlaskConical, Cpu,
+  FileStack, Workflow, Network
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -444,6 +445,72 @@ export default function LandingPage() {
                         Architecture Blueprint
                       </Badge>
                       <Badge variant="outline" className="text-xs">Trade-off Matrix</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+
+              {/* MVP Documentation Generator */}
+              <AnimatedSection delay={0}>
+                <Card className="border-2 border-sky-100 hover:border-sky-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                  <CardContent className="p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 mb-3 group-hover:scale-110 transition-transform">
+                      <FileStack className="h-6 w-6 text-sky-700" />
+                    </div>
+                    <h3 className="font-playfair text-lg font-bold mb-2">MVP Documentation Generator</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Turn a single product brief into a complete, cross-checked MVP documentation bundle — PRD, system architecture, data model, API contract, GTM and more. A multi-agent pipeline drafts each doc in parallel, then reviews the whole set for consistency.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Multi-Agent
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">16 Doc Types</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+
+              {/* Automations */}
+              <AnimatedSection delay={100}>
+                <Card className="border-2 border-cyan-100 hover:border-cyan-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                  <CardContent className="p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 mb-3 group-hover:scale-110 transition-transform">
+                      <Workflow className="h-6 w-6 text-cyan-700" />
+                    </div>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Knowledge Automations</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Put your knowledge workflows on autopilot. Schedule recurring digests, auto-ingest your feeds, and trigger AI actions on a cron — so the platform keeps working in the background while you focus elsewhere.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Scheduled
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">Cron Triggers</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+
+              {/* Knowledge Graph */}
+              <AnimatedSection delay={200}>
+                <Card className="border-2 border-purple-100 hover:border-purple-300 transition-all hover:shadow-lg hover:-translate-y-1 h-full group">
+                  <CardContent className="p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 mb-3 group-hover:scale-110 transition-transform">
+                      <Network className="h-6 w-6 text-purple-700" />
+                    </div>
+                    <h3 className="font-playfair text-lg font-bold mb-2">Interactive Knowledge Graph</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      See how everything connects. AI links related entries into an interactive graph, surfacing clusters and themes so you can navigate your second brain visually and discover non-obvious relationships.
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        <Network className="h-3 w-3 mr-1" />
+                        Auto-Linked
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">Visual Explorer</Badge>
                     </div>
                   </CardContent>
                 </Card>

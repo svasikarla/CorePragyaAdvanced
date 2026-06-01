@@ -16,6 +16,8 @@ import {
 import { supabase } from "@/lib/supabase/client";
 import ReportSection from "@/components/research/ReportSection";
 import SourceIndex from "@/components/research/SourceIndex";
+import { ResearchLeftRail } from "@/components/research/ResearchLeftRail";
+import { ResearchRightPanel } from "@/components/research/ResearchRightPanel";
 import ReportChatPanel, { type ReportChatPanelHandle } from "@/components/research/ReportChatPanel";
 import { reportToMarkdown } from "@/lib/research/export/markdown";
 import type { ResearchJob } from "@/types/research";
@@ -164,11 +166,18 @@ export default function JobDetailClient({ job, accessToken }: Props) {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto max-w-4xl xl:max-w-[1540px]">
         {!report ? (
           <NoReport job={job} />
         ) : (
-          <>
+          <div className="grid gap-8 xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+            <aside className="hidden xl:block">
+              <div className="sticky top-24">
+                <ResearchLeftRail activeTab="report" job={job} config={job.config} />
+              </div>
+            </aside>
+            <main className="min-w-0 space-y-6">
             <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
               {/* Toolbar */}
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -271,8 +280,15 @@ export default function JobDetailClient({ job, accessToken }: Props) {
               starterPrompts={starterPrompts}
               onExportAppendix={handleExportWithChat}
             />
-          </>
+            </main>
+            <aside className="hidden xl:block">
+              <div className="sticky top-24">
+                <ResearchRightPanel activeTab="report" job={job} config={job.config} />
+              </div>
+            </aside>
+          </div>
         )}
+        </div>
       </div>
     </div>
   );
@@ -307,7 +323,8 @@ function RenderedReport({
 
       {/* Executive summary */}
       <div
-        className="px-5 py-4 rounded-lg"
+        id="rsec-exec"
+        className="px-5 py-4 rounded-lg scroll-mt-24"
         style={{
           backgroundColor: "var(--cp-research-panel)",
           borderLeft: "4px solid var(--cp-research-accent)",
@@ -327,11 +344,9 @@ function RenderedReport({
       {/* Sections — each has an Explore button */}
       <div className="space-y-4">
         {report.sections.map((section, i) => (
-          <ReportSection
-            key={i}
-            section={section}
-            onRefine={onRefineSection}
-          />
+          <div key={i} id={`rsec-${i}`} className="scroll-mt-24">
+            <ReportSection section={section} onRefine={onRefineSection} />
+          </div>
         ))}
       </div>
 
