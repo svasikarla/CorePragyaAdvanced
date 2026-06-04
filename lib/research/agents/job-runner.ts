@@ -8,6 +8,7 @@ import { runSearcher } from "./searcher";
 import { runSynthesizer } from "./synthesizer";
 import { callLLM, parseJSON } from "@/lib/research/llm-adapter";
 import { generateEmbeddings } from "@/lib/ai-clients";
+import { indexResearchReport } from "@/lib/research/index-report";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,11 +26,14 @@ async function fetchKBContext(topic: string, userId: string): Promise<string> {
     if (!chunks || chunks.length === 0) return "";
 
     const kbIds = [...new Set((chunks as any[]).map((c: any) => c.kb_id))];
+    // Echo-guard: only feed human-sourced entries into agent context, never the
+    // pipeline's own prior outputs (origin_feature IS NULL), to avoid a feedback loop.
     const { data: entries } = await supabaseAdmin
       .from("knowledgebase")
       .select("title, summary_text, category")
       .in("id", kbIds)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .is("origin_feature", null);
 
     if (!entries || entries.length === 0) return "";
 
@@ -158,6 +162,9 @@ export async function startResearchJob(
       ...buildSearcherAgents(config),
       { id: "cross-analysis", name: "Cross-Analyser", role: "Finding connections", status: "idle" },
       { id: "synthesizer", name: "Synthesizer", role: "Writing report", status: "idle" },
+      ...(config.indexToKB
+        ? [{ id: "index-kb", name: "Knowledge Indexer", role: "Saving to Knowledge Base", status: "idle" as const }]
+        : []),
     ],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -332,6 +339,33 @@ async function runJob(jobId: string, config: ResearchConfig) {
   });
   emit(jobId, "agent_update", { agentId: "synthesizer", status: "done" });
 
-  await jobStore.update(jobId, { report, status: "done" });
+  // Persist the report immediately so it's available regardless of indexing.
+  await jobStore.update(jobId, { report });
+
+  // ── Optional: index the report back into the Knowledge Base (non-fatal) ─────
+  if (config.indexToKB) {
+    await jobStore.updateAgent(jobId, "index-kb", {
+      status: "running",
+      started_at: new Date().toISOString(),
+    });
+    emit(jobId, "agent_update", { agentId: "index-kb", status: "running" });
+    try {
+      const current = await jobStore.get(jobId);
+      const { chunks } = await indexResearchReport(jobId, report, current!.user_id);
+      await jobStore.updateAgent(jobId, "index-kb", {
+        status: "done",
+        note: `Saved to Knowledge Base (${chunks} chunk${chunks !== 1 ? "s" : ""})`,
+        completed_at: new Date().toISOString(),
+      });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "done", note: "Saved to Knowledge Base" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Indexing failed";
+      console.error(`[research] index-to-KB failed for job ${jobId}:`, msg);
+      await jobStore.updateAgent(jobId, "index-kb", { status: "error", note: msg.slice(0, 120) });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "error", note: "Could not save to KB" });
+    }
+  }
+
+  await jobStore.update(jobId, { status: "done" });
   emit(jobId, "complete", { report });
 }

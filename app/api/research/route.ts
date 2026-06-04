@@ -16,6 +16,7 @@ const schema = z.object({
   audience: z.enum(["executive", "technical", "analyst", "client", "board"]),
   format: z.enum(["md", "html", "docx"]),
   searchMyKB: z.boolean().optional().default(false),
+  indexToKB: z.boolean().optional().default(true),
 });
 
 export async function POST(request: NextRequest) {

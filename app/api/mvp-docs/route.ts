@@ -20,6 +20,7 @@ const schema = z.object({
     .max(ALL_DOC_TYPES.length),
   targetAudience: z.string().max(200).default(""),
   searchMyKB: z.boolean().default(false),
+  indexToKB: z.boolean().optional().default(true),
   provider: z.enum(["anthropic", "openai", "groq"]),
   model: z.string().min(1),
 });

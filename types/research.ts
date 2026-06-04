@@ -21,6 +21,7 @@ export interface ResearchConfig {
   audience: AudienceType;
   format: OutputFormat;
   searchMyKB?: boolean;
+  indexToKB?: boolean; // save the finished report back into the Knowledge Base
 }
 
 // ── Orchestrator output ───────────────────────────────────────────────────────

@@ -31,6 +31,11 @@ function getSourceTypeColor(sourceType: string | null | undefined): string {
     rss: '#10b981',
     note: '#8b5cf6',
     manual: '#8b5cf6',
+    // Agent-generated outputs (closed-loop knowledge)
+    research: '#6366f1',
+    tech_research: '#0891b2',
+    mvp_docs: '#7c3aed',
+    content: '#db2777',
   };
   return colors[(sourceType || '').toLowerCase()] || '#64748b';
 }

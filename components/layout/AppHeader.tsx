@@ -45,6 +45,7 @@ export default function AppHeader({ user }: AppHeaderProps) {
     { name: "Tech Research", href: "/tech-research" },
     { name: "Content Studio", href: "/content-creation" },
     { name: "MVP Docs", href: "/mvp-docs" },
+    { name: "Prompt Refiner", href: "/prompt-refiner" },
     { name: "Automations", href: "/automations" },
   ]
 

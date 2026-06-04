@@ -33,6 +33,7 @@ export const useContentCreationStore = create<ContentCreationStore>((set) => ({
     keywords: "",
     includeCode: false,
     searchMyKB: false,
+    indexToKB: false,
     provider: "anthropic",
     model: DEFAULT_MODEL,
   },

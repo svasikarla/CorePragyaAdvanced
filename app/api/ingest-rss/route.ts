@@ -128,11 +128,17 @@ export async function POST(req: Request) {
 
           if (kbEntry) {
             try {
-              const embeddings = await generateEmbeddings(rawText);
-              if (embeddings && embeddings.length > 0) {
+              const chunkText = rawText.slice(0, 8000);
+              const [vector] = await generateEmbeddings(chunkText);
+              if (vector) {
+                // Clear the placeholder row the insert trigger creates (chunk_index 1,
+                // vector NULL), then write a real chunk in the match_embeddings schema.
+                await supabaseAdmin.from('embeddings').delete().eq('kb_id', kbEntry.id);
                 await supabaseAdmin.from('embeddings').insert({
-                  knowledge_base_id: kbEntry.id,
-                  embedding: embeddings[0]
+                  kb_id: kbEntry.id,
+                  chunk_text: chunkText,
+                  chunk_index: 0,
+                  vector,
                 });
               }
             } catch (embErr) {

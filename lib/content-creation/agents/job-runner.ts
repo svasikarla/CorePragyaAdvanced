@@ -11,6 +11,7 @@ import { runContentWriter } from "./content-writer";
 import { runContentOptimizer } from "./content-optimizer";
 import { generateEmbeddings } from "@/lib/ai-clients";
 import { PLATFORM_LABELS } from "@/types/content-creation";
+import { indexContentPieces } from "@/lib/content-creation/index-pieces";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +35,8 @@ async function fetchKBContext(topic: string, userId: string): Promise<string> {
       .from("knowledgebase")
       .select("title, summary_text, category")
       .in("id", kbIds)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .is("origin_feature", null); // echo-guard: exclude the pipeline's own prior outputs
 
     if (!entries || entries.length === 0) return "";
 
@@ -93,6 +95,9 @@ export async function startContentCreationJob(
       { id: "outline-generator", name: "Outline Generator", role: "Structuring content", status: "idle" },
       ...buildPlatformAgents(config.targetPlatforms),
       { id: "optimizer", name: "Content Optimizer", role: "Polishing & cross-platform check", status: "idle" },
+      ...(config.indexToKB
+        ? [{ id: "index-kb", name: "Knowledge Indexer", role: "Saving to Knowledge Base", status: "idle" as const }]
+        : []),
     ],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -262,6 +267,29 @@ async function runJob(jobId: string, config: ContentCreationConfig, userId: stri
     status: "done",
     note: `${contentPieces.length} pieces ready`,
   });
+
+  // ── Optional: index content pieces back into the Knowledge Base (non-fatal) ─
+  if (config.indexToKB && contentPieces.length) {
+    await contentJobStore.updateAgent(jobId, "index-kb", {
+      status: "running",
+      started_at: new Date().toISOString(),
+    });
+    emit(jobId, "agent_update", { agentId: "index-kb", status: "running" });
+    try {
+      const n = await indexContentPieces(jobId, contentPieces, config.topic, userId);
+      await contentJobStore.updateAgent(jobId, "index-kb", {
+        status: "done",
+        note: `Saved ${n} piece${n !== 1 ? "s" : ""} to Knowledge Base`,
+        completed_at: new Date().toISOString(),
+      });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "done", note: `Saved ${n} to Knowledge Base` });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Indexing failed";
+      console.error(`[content-creation] index-to-KB failed for job ${jobId}:`, msg);
+      await contentJobStore.updateAgent(jobId, "index-kb", { status: "error", note: msg.slice(0, 120) });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "error", note: "Could not save to KB" });
+    }
+  }
 
   await contentJobStore.update(jobId, { status: "done" });
   emit(jobId, "complete", { content_pieces: contentPieces });

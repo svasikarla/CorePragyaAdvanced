@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Loader2, Database } from "lucide-react";
+import { Search, Loader2, Database, BookmarkPlus } from "lucide-react";
 import { useResearchStore } from "@/store/research-store";
 import { supabase } from "@/lib/supabase/client";
 import LLMSelector from "./LLMSelector";
@@ -180,6 +180,37 @@ export default function ResearchForm() {
           <div
             className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform"
             style={{ transform: config.searchMyKB ? "translateX(16px)" : "translateX(2px)" }}
+          />
+        </div>
+      </div>
+
+      {/* Save to Knowledge Base toggle */}
+      <div
+        className="flex items-center justify-between rounded-lg px-4 py-3 cursor-pointer select-none"
+        style={{
+          backgroundColor: config.indexToKB ? "rgba(79,70,229,0.06)" : "var(--cp-research-panel)",
+          border: `1px solid ${config.indexToKB ? "var(--cp-research-accent)" : "var(--cp-research-border)"}`,
+        }}
+        onClick={() => setConfig({ indexToKB: !config.indexToKB })}
+      >
+        <div className="flex items-center gap-3">
+          <BookmarkPlus size={15} style={{ color: config.indexToKB ? "var(--cp-research-accent)" : "var(--cp-research-muted)" }} />
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--cp-research-text)" }}>
+              Save results to my Knowledge Base
+            </p>
+            <p className="text-xs" style={{ color: "var(--cp-research-muted)" }}>
+              Index the report so it's searchable and shows in your graph
+            </p>
+          </div>
+        </div>
+        <div
+          className="relative shrink-0 h-5 w-9 rounded-full transition-colors"
+          style={{ backgroundColor: config.indexToKB ? "var(--cp-research-accent)" : "var(--cp-research-border)" }}
+        >
+          <div
+            className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform"
+            style={{ transform: config.indexToKB ? "translateX(16px)" : "translateX(2px)" }}
           />
         </div>
       </div>

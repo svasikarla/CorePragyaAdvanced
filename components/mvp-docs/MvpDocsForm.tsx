@@ -210,16 +210,27 @@ export function MvpDocsForm({ onSubmit, accessToken, isLoading }: Props) {
         />
       </div>
 
-      {/* KB toggle */}
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={config.searchMyKB}
-          onChange={(e) => setConfig({ searchMyKB: e.target.checked })}
-          className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
-        />
-        <span className="text-sm text-slate-700">Ground docs in my Knowledge Base</span>
-      </label>
+      {/* KB toggles */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={config.searchMyKB}
+            onChange={(e) => setConfig({ searchMyKB: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
+          />
+          <span className="text-sm text-slate-700">Ground docs in my Knowledge Base</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={config.indexToKB ?? true}
+            onChange={(e) => setConfig({ indexToKB: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
+          />
+          <span className="text-sm text-slate-700">Save generated docs to my Knowledge Base</span>
+        </label>
+      </div>
 
       {/* AI Model */}
       <div>

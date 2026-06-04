@@ -278,6 +278,16 @@ export function TechResearchForm({ onSubmit, accessToken, isLoading }: Props) {
           />
           <span className="text-sm text-slate-700">Search my Knowledge Base</span>
         </label>
+
+        <label className="flex items-center gap-2 cursor-pointer mt-3">
+          <input
+            type="checkbox"
+            checked={config.indexToKB ?? true}
+            onChange={(e) => setConfig({ indexToKB: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+          />
+          <span className="text-sm text-slate-700">Save results to my Knowledge Base</span>
+        </label>
       </div>
 
       {/* Submit */}

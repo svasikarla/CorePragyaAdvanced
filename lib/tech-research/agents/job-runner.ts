@@ -10,6 +10,7 @@ import { runTechnologyEvaluator } from "./technology-evaluator";
 import { runTradeoffAnalyst } from "./tradeoff-analyst";
 import { runArchitectureSynthesizer } from "./architecture-synthesizer";
 import { generateEmbeddings } from "@/lib/ai-clients";
+import { indexTechReport } from "@/lib/tech-research/index-report";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,11 +30,14 @@ async function fetchKBContext(requirement: string, userId: string): Promise<stri
     if (!chunks || chunks.length === 0) return "";
 
     const kbIds = [...new Set((chunks as { kb_id: string }[]).map((c) => c.kb_id))];
+    // Echo-guard: feed only human-sourced entries into agent context, never the
+    // pipeline's own prior outputs (origin_feature IS NULL).
     const { data: entries } = await supabaseAdmin
       .from("knowledgebase")
       .select("title, summary_text, category")
       .in("id", kbIds)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .is("origin_feature", null);
 
     if (!entries || entries.length === 0) return "";
 
@@ -115,6 +119,9 @@ export async function startTechResearchJob(
         role: "Writing blueprint",
         status: "idle",
       },
+      ...(config.indexToKB
+        ? [{ id: "index-kb", name: "Knowledge Indexer", role: "Saving to Knowledge Base", status: "idle" as const }]
+        : []),
     ],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -320,6 +327,32 @@ async function runJob(
     note: `${blueprint.phases.length} phases`,
   });
 
-  await techJobStore.update(jobId, { report, status: "done" });
+  // Persist the report before the optional indexing step.
+  await techJobStore.update(jobId, { report });
+
+  // ── Optional: index the report back into the Knowledge Base (non-fatal) ─────
+  if (config.indexToKB) {
+    await techJobStore.updateAgent(jobId, "index-kb", {
+      status: "running",
+      started_at: new Date().toISOString(),
+    });
+    emit(jobId, "agent_update", { agentId: "index-kb", status: "running" });
+    try {
+      const { chunks } = await indexTechReport(jobId, report, userId);
+      await techJobStore.updateAgent(jobId, "index-kb", {
+        status: "done",
+        note: `Saved to Knowledge Base (${chunks} chunk${chunks !== 1 ? "s" : ""})`,
+        completed_at: new Date().toISOString(),
+      });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "done", note: "Saved to Knowledge Base" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Indexing failed";
+      console.error(`[tech-research] index-to-KB failed for job ${jobId}:`, msg);
+      await techJobStore.updateAgent(jobId, "index-kb", { status: "error", note: msg.slice(0, 120) });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "error", note: "Could not save to KB" });
+    }
+  }
+
+  await techJobStore.update(jobId, { status: "done" });
   emit(jobId, "complete", { report });
 }

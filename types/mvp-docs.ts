@@ -33,6 +33,7 @@ export interface MvpDocsConfig {
   targetDocs: DocType[];
   targetAudience: string; // Who the product serves
   searchMyKB: boolean;
+  indexToKB?: boolean; // save generated documents back into the Knowledge Base
   provider: Provider;
   model: string;
 }

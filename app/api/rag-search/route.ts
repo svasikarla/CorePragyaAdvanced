@@ -31,6 +31,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // User-scoped client. match_embeddings filters rows by `kb.user_id = auth.uid()`,
+    // so the RPC MUST run with the user's JWT — the service-role client makes
+    // auth.uid() NULL and the function returns zero matches for everything.
+    const supabaseUser = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
     // Get request body parameters
     const { query, limit = 5, useAI = true } = await request.json();
 
@@ -43,7 +52,7 @@ export async function POST(request: Request) {
     const queryEmbedding = embeddingResults[0];
 
     // Search for similar chunks using vector similarity
-    let { data: similarChunks, error: searchError } = await supabaseAdmin.rpc(
+    let { data: similarChunks, error: searchError } = await supabaseUser.rpc(
       'match_embeddings',
       {
         query_embedding: queryEmbedding,
@@ -59,7 +68,7 @@ export async function POST(request: Request) {
         try {
           await createMatchEmbeddingsFunction();
 
-          const { data: retryChunks, error: retryError } = await supabaseAdmin.rpc(
+          const { data: retryChunks, error: retryError } = await supabaseUser.rpc(
             'match_embeddings',
             {
               query_embedding: queryEmbedding,
@@ -94,7 +103,8 @@ export async function POST(request: Request) {
     const { data: knowledgeEntries, error: kbError } = await supabaseAdmin
       .from('knowledgebase')
       .select('id, title, category, summary_text, source_ref, source_type')
-      .in('id', kbIds);
+      .in('id', kbIds)
+      .eq('user_id', user.id);
 
     if (kbError) {
       console.error('Error fetching knowledge entries:', kbError);

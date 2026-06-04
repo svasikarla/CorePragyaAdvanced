@@ -9,6 +9,7 @@ import { runBriefAnalyzer } from "./brief-analyzer";
 import { runDocumentGenerator } from "./document-generator";
 import { runConsistencyChecker } from "./consistency-checker";
 import { generateEmbeddings } from "@/lib/ai-clients";
+import { indexMvpDocuments } from "@/lib/mvp-docs/index-documents";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,7 +33,8 @@ async function fetchKBContext(brief: string, userId: string): Promise<string> {
       .from("knowledgebase")
       .select("title, summary_text, category")
       .in("id", kbIds)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .is("origin_feature", null); // echo-guard: exclude the pipeline's own prior outputs
 
     if (!entries || entries.length === 0) return "";
 
@@ -89,6 +91,9 @@ export async function startMvpDocsJob(
       { id: "brief-analyzer", name: "Brief Analyzer", role: "Building shared source of truth", status: "idle" },
       ...buildDocAgents(config.targetDocs),
       { id: "consistency-checker", name: "Consistency Checker", role: "Cross-document review", status: "idle" },
+      ...(config.indexToKB
+        ? [{ id: "index-kb", name: "Knowledge Indexer", role: "Saving to Knowledge Base", status: "idle" as const }]
+        : []),
     ],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -237,6 +242,29 @@ async function runJob(jobId: string, config: MvpDocsConfig, userId: string) {
       completed_at: new Date().toISOString(),
     });
     emit(jobId, "agent_update", { agentId: "consistency-checker", status: "done", note: "Skipped" });
+  }
+
+  // ── Optional: index each document back into the Knowledge Base (non-fatal) ──
+  if (config.indexToKB && documents.length) {
+    await mvpDocsJobStore.updateAgent(jobId, "index-kb", {
+      status: "running",
+      started_at: new Date().toISOString(),
+    });
+    emit(jobId, "agent_update", { agentId: "index-kb", status: "running" });
+    try {
+      const n = await indexMvpDocuments(jobId, documents, config.productName, userId);
+      await mvpDocsJobStore.updateAgent(jobId, "index-kb", {
+        status: "done",
+        note: `Saved ${n} doc${n !== 1 ? "s" : ""} to Knowledge Base`,
+        completed_at: new Date().toISOString(),
+      });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "done", note: `Saved ${n} to Knowledge Base` });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Indexing failed";
+      console.error(`[mvp-docs] index-to-KB failed for job ${jobId}:`, msg);
+      await mvpDocsJobStore.updateAgent(jobId, "index-kb", { status: "error", note: msg.slice(0, 120) });
+      emit(jobId, "agent_update", { agentId: "index-kb", status: "error", note: "Could not save to KB" });
+    }
   }
 
   await mvpDocsJobStore.update(jobId, { status: "done" });

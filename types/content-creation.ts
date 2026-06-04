@@ -30,6 +30,7 @@ export interface ContentCreationConfig {
   keywords: string;        // Comma-separated seeds for SEO / hashtags
   includeCode: boolean;
   searchMyKB: boolean;
+  indexToKB?: boolean; // save generated pieces back into the Knowledge Base (opt-in)
   provider: Provider;
   model: string;
 }

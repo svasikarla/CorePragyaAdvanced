@@ -3,7 +3,7 @@
 import type { ResearchJob, ResearchConfig } from "@/types/research";
 import { RESEARCH_MODELS } from "@/lib/research/models";
 import { SidebarCard, Stat } from "@/components/agents-ui/sidebar-primitives";
-import { FlaskConical, Layers, Cpu, Sparkles, ListChecks, Database, FileText, Lightbulb } from "lucide-react";
+import { FlaskConical, Layers, Cpu, Sparkles, ListChecks, Database, FileText, Lightbulb, BookmarkCheck } from "lucide-react";
 
 type Tab = "config" | "agents" | "report";
 
@@ -114,6 +114,7 @@ export function ResearchRightPanel({ activeTab, job, config }: Props) {
   // Report tab
   const report = job?.report;
   if (!report) return null;
+  const indexStatus = job?.agents.find((a) => a.id === "index-kb")?.status;
   return (
     <div className="space-y-4">
       <SidebarCard title="Report" icon={<FileText className="h-3 w-3" />}>
@@ -124,6 +125,25 @@ export function ResearchRightPanel({ activeTab, job, config }: Props) {
           <div className="flex items-center justify-between"><dt className="text-slate-400">Audience</dt><dd className="font-medium capitalize text-slate-600">{report.config.audience}</dd></div>
           <div className="flex items-center justify-between"><dt className="text-slate-400">Generated</dt><dd className="font-medium text-slate-600">{new Date(report.generated_at).toLocaleDateString()}</dd></div>
         </dl>
+        {indexStatus && (
+          <a
+            href="/knowledge-graph"
+            className={`mt-3 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+              indexStatus === "done"
+                ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                : indexStatus === "error"
+                ? "bg-red-50 text-red-600"
+                : "bg-slate-50 text-slate-500"
+            }`}
+          >
+            <BookmarkCheck className="h-3 w-3" />
+            {indexStatus === "done"
+              ? "Saved to your Knowledge Base"
+              : indexStatus === "error"
+              ? "Could not save to Knowledge Base"
+              : "Saving to Knowledge Base…"}
+          </a>
+        )}
       </SidebarCard>
       <SidebarCard title="Takeaways" icon={<ListChecks className="h-3 w-3" />}>
         <div className="grid grid-cols-2 gap-2">

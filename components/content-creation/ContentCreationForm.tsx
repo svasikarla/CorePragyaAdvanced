@@ -206,6 +206,15 @@ export function ContentCreationForm({ onSubmit, accessToken, isLoading }: Props)
           />
           <span className="text-sm text-slate-700">Search my Knowledge Base</span>
         </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={config.indexToKB ?? false}
+            onChange={(e) => setConfig({ indexToKB: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-violet-500 focus:ring-violet-500"
+          />
+          <span className="text-sm text-slate-700">Save generated content to my Knowledge Base</span>
+        </label>
       </div>
 
       {/* AI Model */}

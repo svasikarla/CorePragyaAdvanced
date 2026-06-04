@@ -31,6 +31,7 @@ export const useMvpDocsStore = create<MvpDocsStore>((set) => ({
     targetDocs: ["vision", "prd", "system_architecture", "data_model", "api_contract"],
     targetAudience: "",
     searchMyKB: false,
+    indexToKB: true,
     provider: "anthropic",
     model: DEFAULT_MODEL,
   },

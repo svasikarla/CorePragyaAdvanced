@@ -36,6 +36,7 @@ const schema = z.object({
     "general",
   ]),
   searchMyKB: z.boolean().optional().default(false),
+  indexToKB: z.boolean().optional().default(true),
 });
 
 export async function POST(request: NextRequest) {

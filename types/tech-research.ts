@@ -35,6 +35,7 @@ export interface TechResearchConfig {
   format: import("./research").OutputFormat;
   focus_area: FocusArea;
   searchMyKB?: boolean;
+  indexToKB?: boolean; // save the finished report back into the Knowledge Base
 }
 
 // ── Phase 1: Requirement analysis ─────────────────────────────────────────────

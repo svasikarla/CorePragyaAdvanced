@@ -20,6 +20,7 @@ const schema = z.object({
   keywords: z.string().max(300).default(""),
   includeCode: z.boolean().default(false),
   searchMyKB: z.boolean().default(false),
+  indexToKB: z.boolean().optional().default(false),
   provider: z.enum(["anthropic", "openai", "groq"]),
   model: z.string().min(1),
 });

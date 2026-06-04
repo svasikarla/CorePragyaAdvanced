@@ -38,6 +38,7 @@ export const useTechResearchStore = create<TechResearchStore>((set) => ({
     format: "md",
     focus_area: "general",
     searchMyKB: false,
+    indexToKB: true,
   },
   job: null,
   jobId: null,

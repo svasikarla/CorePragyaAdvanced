@@ -28,6 +28,7 @@ export const useResearchStore = create<ResearchStore>((set) => ({
     audience: "analyst",
     format: "md",
     searchMyKB: false,
+    indexToKB: true,
   },
   job: null,
   jobId: null,

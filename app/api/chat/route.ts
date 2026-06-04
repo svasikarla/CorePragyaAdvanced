@@ -35,6 +35,14 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
+  // User-scoped client — match_embeddings filters by auth.uid(), which is NULL
+  // under the service-role client (returns zero matches). Must use the user JWT.
+  const supabaseUser = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  );
+
   let messages: ChatMessage[];
   try {
     ({ messages } = await request.json());
@@ -56,7 +64,7 @@ export async function POST(request: Request) {
   try {
     const [[queryEmbedding]] = await Promise.all([generateEmbeddings(query)]);
 
-    const { data: chunks } = await supabaseAdmin.rpc("match_embeddings", {
+    const { data: chunks } = await supabaseUser.rpc("match_embeddings", {
       query_embedding: queryEmbedding,
       match_threshold: 0.45,
       match_count: 6,
