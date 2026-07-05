@@ -64,28 +64,45 @@ export default function KnowledgeGrowthChart({ entries }: KnowledgeGrowthChartPr
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart
-        data={chartData}
-        margin={{
-          top: 5,
-          right: 30,
-          left: 20,
-          bottom: 5,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis />
-        <Tooltip formatter={(value) => [`${value} entries`, 'Total']} />
-        <Line
-          type="monotone"
-          dataKey="count"
-          stroke="#6366f1"
-          activeDot={{ r: 8 }}
-          strokeWidth={2}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="knowledge-line-chart h-full w-full">
+      {/* Shared dataviz series-1 blue + ink, stepped for dark mode. */}
+      <style>{`
+        .knowledge-line-chart { --cat-bar: #2a78d6; --cat-ink: #52514e; --cat-grid: #e1e0d9; }
+        .dark .knowledge-line-chart, :root[data-theme="dark"] .knowledge-line-chart {
+          --cat-bar: #3987e5; --cat-ink: #c3c2b7; --cat-grid: #2c2c2a;
+        }
+      `}</style>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={chartData}
+          margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
+        >
+          <CartesianGrid vertical={false} stroke="var(--cat-grid)" />
+          <XAxis
+            dataKey="date"
+            tickLine={false}
+            axisLine={false}
+            minTickGap={24}
+            tick={{ fill: "var(--cat-ink)", fontSize: 11 }}
+          />
+          <YAxis
+            width={28}
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+            tick={{ fill: "var(--cat-ink)", fontSize: 11 }}
+          />
+          <Tooltip formatter={(value) => [`${value} entries`, 'Total']} />
+          <Line
+            type="monotone"
+            dataKey="count"
+            stroke="var(--cat-bar)"
+            dot={false}
+            activeDot={{ r: 5 }}
+            strokeWidth={2}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   )
 }

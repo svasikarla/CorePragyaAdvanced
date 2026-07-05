@@ -1,29 +1,48 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { useMemo } from "react"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
 
 interface CategoryDistributionChartProps {
   data: Record<string, number>;
 }
 
+// Show the top N categories individually; roll the long tail into a single
+// "Other" bar so a 13-category knowledge base stays readable in a small card.
+const TOP_N = 8
+const LABEL_MAX = 16
+
+function truncate(label: string) {
+  return label.length > LABEL_MAX ? `${label.slice(0, LABEL_MAX - 1)}…` : label
+}
+
 export default function CategoryDistributionChart({ data }: CategoryDistributionChartProps) {
-  const [chartData, setChartData] = useState<Array<{ name: string; value: number }>>([])
+  const { chartData, total } = useMemo(() => {
+    const sorted = Object.entries(data)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
 
-  // Colors for the pie chart
-  const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#84cc16', '#10b981', '#06b6d4', '#3b82f6']
+    const sum = sorted.reduce((s, e) => s + e.value, 0)
 
-  useEffect(() => {
-    // Convert the data object to an array format for the chart
-    const formattedData = Object.entries(data).map(([name, value], index) => ({
-      name,
-      value,
-    }))
+    if (sorted.length <= TOP_N + 1) {
+      return { chartData: sorted, total: sum }
+    }
 
-    // Sort by value in descending order
-    formattedData.sort((a, b) => b.value - a.value)
+    const top = sorted.slice(0, TOP_N)
+    const rest = sorted.slice(TOP_N)
+    const otherValue = rest.reduce((s, e) => s + e.value, 0)
 
-    setChartData(formattedData)
+    return {
+      chartData: [...top, { name: `Other (${rest.length})`, value: otherValue }],
+      total: sum,
+    }
   }, [data])
 
   // If no data, show a placeholder
@@ -43,25 +62,53 @@ export default function CategoryDistributionChart({ data }: CategoryDistribution
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie
+    <div className="category-bar-chart h-full w-full">
+      {/* Single validated hue (dataviz series-1 blue), stepped for dark mode.
+          One measure across categories → one color; length carries magnitude. */}
+      <style>{`
+        .category-bar-chart { --cat-bar: #2a78d6; --cat-ink: #52514e; }
+        .dark .category-bar-chart, :root[data-theme="dark"] .category-bar-chart {
+          --cat-bar: #3987e5; --cat-ink: #c3c2b7;
+        }
+      `}</style>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
           data={chartData}
-          cx="50%"
-          cy="50%"
-          labelLine={false}
-          outerRadius={80}
-          fill="#8884d8"
-          dataKey="value"
-          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+          layout="vertical"
+          margin={{ top: 4, right: 40, bottom: 4, left: 4 }}
+          barCategoryGap={4}
         >
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value) => [`${value} entries`, 'Count']} />
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="name"
+            width={110}
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: "var(--cat-ink)", fontSize: 12 }}
+            tickFormatter={truncate}
+          />
+          <Tooltip
+            cursor={{ fill: "rgba(120,120,120,0.08)" }}
+            formatter={(value: number) => {
+              const pct = total > 0 ? Math.round((value / total) * 100) : 0
+              return [`${value} entries (${pct}%)`, "Count"]
+            }}
+          />
+          <Bar
+            dataKey="value"
+            fill="var(--cat-bar)"
+            radius={[0, 4, 4, 0]}
+            maxBarSize={22}
+            label={{
+              position: "right",
+              fill: "var(--cat-ink)",
+              fontSize: 11,
+            }}
+            isAnimationActive={false}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   )
 }

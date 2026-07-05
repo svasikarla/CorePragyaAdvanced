@@ -82,57 +82,65 @@ export default function CategoryHeatmap({ entries }: CategoryHeatmapProps) {
     )
   }
 
-  // Colors for the heatmap
-  const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#84cc16', '#10b981', '#06b6d4', '#3b82f6']
+  // Magnitude (entries per cell) is encoded by color intensity on ONE hue —
+  // a sequential heatmap, not a rainbow. z was scaled ×100 above, so count = z/100.
+  const maxCount = Math.max(...chartData.map((d) => d.z / 100), 1)
+  const truncate = (s: string) => (s.length > 12 ? `${s.slice(0, 11)}…` : s)
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <ScatterChart
-        margin={{
-          top: 20,
-          right: 20,
-          bottom: 20,
-          left: 20,
-        }}
-      >
-        <XAxis 
-          type="number" 
-          dataKey="x" 
-          name="Date" 
-          tick={false}
-          label={{ value: 'Time', position: 'insideBottom', offset: -10 }}
-        />
-        <YAxis 
-          type="number" 
-          dataKey="y" 
-          name="Category" 
-          tick={false}
-          label={{ value: 'Categories', angle: -90, position: 'insideLeft' }}
-        />
-        <Tooltip 
-          cursor={{ strokeDasharray: '3 3' }}
-          formatter={(value, name, props) => {
-            if (name === 'z') {
-              return [props.payload.category, 'Category']
-            }
-            if (name === 'x') {
-              return [props.payload.date, 'Date']
-            }
-            return [value, name]
-          }}
-        />
-        <Scatter name="Categories" data={chartData} fill="#8884d8">
-          {chartData.map((entry, index) => {
-            const categoryIndex = categories.indexOf(entry.category)
-            return (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={COLORS[categoryIndex % COLORS.length]} 
-              />
-            )
-          })}
-        </Scatter>
-      </ScatterChart>
-    </ResponsiveContainer>
+    <div className="category-heatmap h-full w-full">
+      <style>{`
+        .category-heatmap { --cat-bar: 212 68% 50%; --cat-ink: #52514e; }
+        .dark .category-heatmap, :root[data-theme="dark"] .category-heatmap {
+          --cat-bar: 212 78% 56%; --cat-ink: #c3c2b7;
+        }
+      `}</style>
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 12, right: 16, bottom: 8, left: 8 }}>
+          <XAxis
+            type="number"
+            dataKey="x"
+            name="Date"
+            tick={false}
+            axisLine={false}
+            tickLine={false}
+            label={{ value: 'Time →', position: 'insideBottom', offset: 0, fill: 'var(--cat-ink)', fontSize: 11 }}
+          />
+          <YAxis
+            type="number"
+            dataKey="y"
+            name="Category"
+            width={90}
+            interval={0}
+            ticks={categories.map((_, i) => i)}
+            tickFormatter={(v) => truncate(categories[v] ?? '')}
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: 'var(--cat-ink)', fontSize: 11 }}
+          />
+          <Tooltip
+            cursor={{ strokeDasharray: '3 3' }}
+            formatter={(value, name, props) => {
+              if (name === 'z') {
+                return [`${props.payload.category} — ${props.payload.z / 100} entries`, props.payload.date]
+              }
+              return [value, name]
+            }}
+          />
+          <Scatter name="Categories" data={chartData}>
+            {chartData.map((entry, index) => {
+              // opacity 0.3→1 by relative magnitude → the sequential ramp
+              const intensity = 0.3 + 0.7 * ((entry.z / 100) / maxCount)
+              return (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={`hsl(var(--cat-bar) / ${intensity})`}
+                />
+              )
+            })}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
+    </div>
   )
 }
